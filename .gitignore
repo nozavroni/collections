@@ -1,0 +1,19 @@
+# Managed by Composer
+/vendor/
+
+# PHPUnit
+/phpunit.xml
+/phpunit
+
+# Docs
+/docs/_build/
+/.venv
+
+# Composer PHAR
+/composer.phar
+
+# OS X
+.DS_Store
+.idea
+
+

@@ -1,0 +1,26 @@
+{
+    "name": "nozavroni/collections",
+    "description": "Just another collections library for PHP5.6+",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Luke Visinoni",
+            "email": "luke.visinoni@gmail.com"
+        }
+    ],
+    "require": {
+
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5.7",
+        "fzaninotto/Faker": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Noz\\": ["./src"],
+            "NozTest\\": ["./tests"]
+        },
+        "files": ["./src/functions.php"]
+    }
+}
