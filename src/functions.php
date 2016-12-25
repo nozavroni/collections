@@ -1,16 +1,16 @@
 <?php
-/**
+
+/*
  * Nozavroni/Collections
  * Just another collections library for PHP5.6+.
  *
- * @version   {version}
  * @copyright Copyright (c) 2016 Luke Visinoni <luke.visinoni@gmail.com>
  * @author    Luke Visinoni <luke.visinoni@gmail.com>
- * @license   https://github.com/deni-zen/csvelte/blob/master/LICENSE The MIT License (MIT)
+ * @license   https://github.com/nozavroni/collections/blob/master/LICENSE The MIT License (MIT)
  */
 namespace Noz;
 
-use \Iterator;
+use Iterator;
 use Noz\Collection\AbstractCollection;
 use Noz\Collection\Collection;
 
@@ -68,7 +68,7 @@ function is_traversable($input)
 }
 
 /**
- * Dump and die
+ * Dump and die.
  *
  * @param mixed $input Data to dump
  * @param bool  $exit  Should we exit after dump?
@@ -80,17 +80,17 @@ function dd($input, $exit = true, $label = null)
         $trace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 1);
         $label = 'File: ';
         $label .= pathinfo($trace[0]['file'], PATHINFO_FILENAME);
-        $label .= ":".$trace[0]['line'];
-        echo $label."\n";
+        $label .= ':' . $trace[0]['line'];
+        echo $label . "\n";
     } else {
-        echo $label."\n".implode(
+        echo $label . "\n" . implode(
                 array_map(
                     function ($c) {
-                        return "-";
+                        return '-';
                     },
                     str_split($label)
                 )
-            )."\n";
+            ) . "\n";
     }
     var_dump($input);
     echo "\n";
