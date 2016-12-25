@@ -30,15 +30,10 @@ use function Noz\is_traversable;
  *
  * @package Noz\Collection
  *
- * @since v0.2.2
- *
  * @author Luke Visinoni <luke.visinoni@gmail.com>
  * @copyright Copyright (c) 2016 Luke Visinoni <luke.visinoni@gmail.com>
  *
  * @todo Implement Serializable, other Interfaces
- * @todo Implement __toString() in such a way that by deault it
- *     will return a CSV-formatted string but you can configure
- *     it to return other formats if you want
  */
 abstract class AbstractCollection implements
     ArrayAccess,
