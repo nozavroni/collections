@@ -106,7 +106,7 @@ class TabularCollection extends MultiCollection
      */
     public function getRow($offset)
     {
-        return $this->getValueAtPosition($offset);
+        return static::factory($this->getValueAtPosition($offset));
     }
 
     /**

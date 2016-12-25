@@ -138,7 +138,7 @@ class TabularCollectionTest extends AbstractCollectionTest
             'password' => '60a2409dea624661573516a31e3a1ea412076237',
             'role' => 'moderator',
             'is_active' => false
-        ], $firstrow);
+        ], $firstrow->toArray());
     }
 
     /**
