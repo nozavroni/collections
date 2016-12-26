@@ -73,6 +73,7 @@ function is_traversable($input)
  * @param mixed $input Data to dump
  * @param bool  $exit  Should we exit after dump?
  * @param bool  $label Should we print a label?
+ * @codeCoverageIgnore
  */
 function dd($input, $exit = true, $label = null)
 {
