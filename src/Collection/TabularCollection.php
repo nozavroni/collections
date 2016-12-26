@@ -13,8 +13,24 @@ namespace Noz\Collection;
 use BadMethodCallException;
 use OutOfBoundsException;
 
+/**
+ * Class TabularCollection
+ *
+ * A collection that works as a table, meaning each item is itself an traversable item, all rows having the same set of
+ * keys. This allows you to work with columns as well as rows.
+ *
+ * @package Noz\Collection
+ */
 class TabularCollection extends MultiCollection
 {
+    /**
+     * {@inheritdoc}
+     */
+    protected function prepareData($data)
+    {
+        return $data;
+    }
+
     /**
      * Magic method call.
      *

@@ -12,8 +12,23 @@ namespace Noz\Collection;
 
 use function Noz\is_traversable;
 
+/**
+ * Class Collection
+ *
+ * A basic collection class, allowing only scalar/non-traversable items.
+ *
+ * @package Noz\Collection
+ */
 class Collection extends AbstractCollection
 {
+    /**
+     * {@inheritdoc}
+     */
+    protected function prepareData($data)
+    {
+        return $data;
+    }
+
     /**
      * Is correct input data type?
      *

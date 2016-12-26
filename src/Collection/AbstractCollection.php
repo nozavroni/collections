@@ -993,10 +993,7 @@ abstract class AbstractCollection implements
      *
      * @return array
      */
-    protected function prepareData($data)
-    {
-        return $data;
-    }
+    abstract protected function prepareData($data);
 
     /**
      * Determine whether data is consistent with a given collection type.
