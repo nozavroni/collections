@@ -86,7 +86,7 @@ function dd($input, $exit = true, $label = null)
     } else {
         echo $label . "\n" . implode(
                 array_map(
-                    function ($c) {
+                    function () {
                         return '-';
                     },
                     str_split($label)
