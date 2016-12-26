@@ -15,6 +15,8 @@ use function Noz\is_traversable;
 /**
  * Class NumericCollection.
  *
+ * A collection that allows only numeric items, meaning only int, float, or numeric strings.
+ *
  * @package Noz\Collection
  *
  * @todo $this->set('foo', 'bar'); should throw an exception because only
@@ -22,6 +24,14 @@ use function Noz\is_traversable;
  */
 class NumericCollection extends AbstractCollection
 {
+    /**
+     * {@inheritdoc}
+     */
+    protected function prepareData($data)
+    {
+        return $data;
+    }
+
     /**
      * Increment an item.
      *
