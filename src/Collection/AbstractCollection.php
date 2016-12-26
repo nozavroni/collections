@@ -68,7 +68,7 @@ abstract class AbstractCollection implements
      * @param mixed $val   The value (depends on other param value)
      * @param mixed $index The index (depends on other param value)
      *
-     * @return mixed (Depends on parameter values)
+     * @return array|AbstractCollection (Depends on parameter values)
      */
     public function __invoke($val = null, $index = null)
     {
@@ -380,7 +380,7 @@ abstract class AbstractCollection implements
      *
      * @throws OutOfBoundsException if no pair at position
      *
-     * @return mixed
+     * @return integer|string
      */
     public function getKeyAtPosition($pos)
     {
@@ -451,7 +451,8 @@ abstract class AbstractCollection implements
     /**
      * Merge data into collection.
      *
-     * Merges input data into this collection. Input can be an array or another collection. Returns a NEW collection object.
+     * Merges input data into this collection. Input can be an array or another collection.
+     * Returns a NEW collection object.
      *
      * @param Traversable|array $data The data to merge with this collection
      *
@@ -472,7 +473,8 @@ abstract class AbstractCollection implements
      * Determine if this collection contains a value.
      *
      * Allows you to pass in a value or a callback function and optionally an index,
-     * and tells you whether or not this collection contains that value. If the $index param is specified, only that index will be looked under.
+     * and tells you whether or not this collection contains that value.
+     * If the $index param is specified, only that index will be looked under.
      *
      * @param mixed|callable $value The value to check for
      * @param mixed          $index The (optional) index to look under
@@ -550,9 +552,9 @@ abstract class AbstractCollection implements
      *
      * Returns a new collection with $items added.
      *
-     * @param array $items Any number of arguments will be pushed onto the
+     * @param array ...$items Any number of arguments will be pushed onto the
      *
-     * @return mixed The first item in this collection
+     * @return AbstractCollection
      */
     public function push(...$items)
     {
@@ -566,7 +568,9 @@ abstract class AbstractCollection implements
      *
      * Returns a new collection with $items added.
      *
-     * @return mixed The first item in this collection
+     * @param array ...$items Items to unshift onto collection
+     *
+     * @return AbstractCollection
      */
     public function unshift(...$items)
     {
@@ -628,8 +632,8 @@ abstract class AbstractCollection implements
     /**
      * Iterate over each item that matches criteria in callback.
      *
-     * @param Closure|callable $callback A callback to use
-     * @param object           $bindTo   The object to bind to
+     * @param Closure     $callback A callback to use
+     * @param object|null $bindTo   The object to bind to
      *
      * @return AbstractCollection
      */

@@ -17,6 +17,7 @@ use Noz\Collection\MultiCollection;
 
 use Noz\Collection\TabularCollection;
 use function Noz\is_traversable;
+use OutOfBoundsException;
 
 class TabularCollectionTest extends AbstractCollectionTest
 {
@@ -142,7 +143,7 @@ class TabularCollectionTest extends AbstractCollectionTest
     }
 
     /**
-     * @expectedException \OutOfBoundsException
+     * @expectedException OutOfBoundsException
      */
     public function testCollectionGetRowThrowsExceptionForMissingRow()
     {
@@ -162,6 +163,21 @@ class TabularCollectionTest extends AbstractCollectionTest
         $coll = new TabularCollection($this->testdata[TabularCollection::class]['user']);
         $this->assertInstanceOf(AbstractCollection::class, $coll->getColumn('email'));
         $this->assertEquals([1,2,3,4,5], $coll->getColumn('id')->toArray());
+    }
+
+    /**
+     * @expectedException OutOfBoundsException
+     */
+    public function testGetColumnThrowsExceptionForMissingColumn()
+    {
+        $coll = new TabularCollection($this->testdata[TabularCollection::class]['user']);
+        $coll->getColumn(100);
+    }
+
+    public function testGetColumnReturnsFalseForMissingColumnIfThrowParamIsFalse()
+    {
+        $coll = new TabularCollection($this->testdata[TabularCollection::class]['user']);
+        $this->assertFalse($coll->getColumn(100, false));
     }
 
     public function testAverageColumn()
@@ -226,5 +242,31 @@ class TabularCollectionTest extends AbstractCollectionTest
             ['id' => 5, 'name' => 'Joe', 'email' => 'joe.rogan@gmail.com'],
         ]);
         $coll->nonExistantMethod('foo','bar');
+    }
+
+
+
+    /**
+     * @expectedException BadMethodCallException
+     * @expectedExceptionMessage Method does not exist: Noz\Collection\TabularCollection::nonExistantMethod()
+     */
+    public function testTabularCollectionThrowsBadMethodCallExceptionOnBadMethodCallWithNoParams()
+    {
+        $coll = new TabularCollection([
+            ['id' => 2, 'name' => 'Luke', 'email' => 'luke.visinoni@gmail.com'],
+            ['id' => 3, 'name' => 'Dave', 'email' => 'dave.mason@gmail.com'],
+            ['id' => 5, 'name' => 'Joe', 'email' => 'joe.rogan@gmail.com'],
+        ]);
+        $coll->nonExistantMethod('foo');
+    }
+
+    public function testWalkForTabularCollection()
+    {
+        $coll = new TabularCollection($this->testdata[TabularCollection::class]['user']);
+        $ret = $coll->walk(function($row, $index) {
+            $this->assertInstanceOf(AbstractCollection::class, $row);
+            $this->assertInternalType('int', $index);
+        });
+        $this->assertInstanceOf(TabularCollection::class, $ret);
     }
 }

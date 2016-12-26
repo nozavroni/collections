@@ -29,7 +29,7 @@ class CharCollection extends AbstractCollection
      *
      * @param callable $callback The callback to apply
      *
-     * @return AbstractCollection A new collection with callback return values
+     * @return CharCollection A new collection with callback return values
      */
     public function map(callable $callback)
     {

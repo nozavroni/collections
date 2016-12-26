@@ -87,7 +87,7 @@ class NumericCollection extends AbstractCollection
     /**
      * Get the sum.
      *
-     * @return mixed The sum of all values in collection
+     * @return integer|double The sum of all values in collection
      */
     public function sum()
     {
