@@ -227,4 +227,13 @@ class TabularCollectionTest extends AbstractCollectionTest
         ]);
         $coll->nonExistantMethod('foo','bar');
     }
+
+    public function testWalkForTabularCollection()
+    {
+        $coll = new TabularCollection($this->testdata[TabularCollection::class]['user']);
+        $coll->walk(function($row, $index) {
+            $this->assertInstanceOf(AbstractCollection::class, $row);
+            $this->assertInternalType('int', $index);
+        });
+    }
 }
