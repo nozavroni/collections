@@ -552,7 +552,7 @@ abstract class AbstractCollection implements
      *
      * Returns a new collection with $items added.
      *
-     * @param mixed ...$items Any number of arguments will be pushed onto the
+     * @param array ...$items Any number of arguments will be pushed onto the
      *
      * @return AbstractCollection
      */
@@ -568,7 +568,7 @@ abstract class AbstractCollection implements
      *
      * Returns a new collection with $items added.
      *
-     * @param mixed ...$items Items to unshift onto collection
+     * @param array ...$items Items to unshift onto collection
      *
      * @return AbstractCollection
      */
