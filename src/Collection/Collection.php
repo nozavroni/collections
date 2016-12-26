@@ -13,7 +13,7 @@ namespace Noz\Collection;
 use function Noz\is_traversable;
 
 /**
- * Class Collection
+ * Class Collection.
  *
  * A basic collection class, allowing only scalar/non-traversable items.
  *

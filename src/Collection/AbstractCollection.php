@@ -380,7 +380,7 @@ abstract class AbstractCollection implements
      *
      * @throws OutOfBoundsException if no pair at position
      *
-     * @return integer|string
+     * @return int|string
      */
     public function getKeyAtPosition($pos)
     {

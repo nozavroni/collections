@@ -14,7 +14,7 @@ use BadMethodCallException;
 use OutOfBoundsException;
 
 /**
- * Class TabularCollection
+ * Class TabularCollection.
  *
  * A collection that works as a table, meaning each item is itself an traversable item, all rows having the same set of
  * keys. This allows you to work with columns as well as rows.
@@ -23,14 +23,6 @@ use OutOfBoundsException;
  */
 class TabularCollection extends MultiCollection
 {
-    /**
-     * {@inheritdoc}
-     */
-    protected function prepareData($data)
-    {
-        return $data;
-    }
-
     /**
      * Magic method call.
      *
@@ -148,6 +140,14 @@ class TabularCollection extends MultiCollection
         }
 
         return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function prepareData($data)
+    {
+        return $data;
     }
 
     /**
