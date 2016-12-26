@@ -11,7 +11,7 @@
 namespace Noz\Collection;
 
 /**
- * Class CharCollection
+ * Class CharCollection.
  *
  * Char Collection is like any other collection, only it accepts a string of characters and treats each character as an
  * item in the collection. It is in many ways like a string object, allowing you to extract substrings, add characters,

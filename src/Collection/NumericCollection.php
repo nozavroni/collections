@@ -25,14 +25,6 @@ use function Noz\is_traversable;
 class NumericCollection extends AbstractCollection
 {
     /**
-     * {@inheritdoc}
-     */
-    protected function prepareData($data)
-    {
-        return $data;
-    }
-
-    /**
      * Increment an item.
      *
      * Increment the item specified by $key by one value. Intended for integers
@@ -87,7 +79,7 @@ class NumericCollection extends AbstractCollection
     /**
      * Get the sum.
      *
-     * @return integer|double The sum of all values in collection
+     * @return int|float The sum of all values in collection
      */
     public function sum()
     {
@@ -173,6 +165,14 @@ class NumericCollection extends AbstractCollection
     public function counts()
     {
         return new self(array_count_values($this->toArray()));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function prepareData($data)
+    {
+        return $data;
     }
 
     protected function isConsistentDataStructure($data)

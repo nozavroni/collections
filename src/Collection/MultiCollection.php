@@ -13,7 +13,7 @@ namespace Noz\Collection;
 use function Noz\is_traversable;
 
 /**
- * Class MultiCollection
+ * Class MultiCollection.
  *
  * A collection that allows traversable item as well as scalar items.
  *
@@ -21,14 +21,6 @@ use function Noz\is_traversable;
  */
 class MultiCollection extends AbstractCollection
 {
-    /**
-     * {@inheritdoc}
-     */
-    protected function prepareData($data)
-    {
-        return $data;
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -47,6 +39,14 @@ class MultiCollection extends AbstractCollection
         }
         
         return false;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function prepareData($data)
+    {
+        return $data;
     }
 
     protected function isConsistentDataStructure($data)
