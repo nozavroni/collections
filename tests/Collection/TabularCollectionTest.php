@@ -231,9 +231,10 @@ class TabularCollectionTest extends AbstractCollectionTest
     public function testWalkForTabularCollection()
     {
         $coll = new TabularCollection($this->testdata[TabularCollection::class]['user']);
-        $coll->walk(function($row, $index) {
+        $ret = $coll->walk(function($row, $index) {
             $this->assertInstanceOf(AbstractCollection::class, $row);
             $this->assertInternalType('int', $index);
         });
+        $this->assertInstanceOf(TabularCollection::class, $ret);
     }
 }
