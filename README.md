@@ -1,3 +1,10 @@
+[![Build Status](https://travis-ci.org/nozavroni/collections.svg?branch=master)](https://travis-ci.org/nozavroni/collections)
+[![Coverage Status](https://coveralls.io/repos/github/nozavroni/collections/badge.svg?branch=master)](https://coveralls.io/github/nozavroni/collections?branch=master)
+[![StyleCI](https://styleci.io/repos/77319219/shield?branch=master)](https://styleci.io/repos/77319219)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/nozavroni/collections/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/nozavroni/collections/?branch=master)
+[![Documentation Status](https://readthedocs.org/projects/nozavronicollections/badge/?version=latest)](http://nozavronicollections.readthedocs.io/en/latest/?badge=latest)
+[![License](https://poser.pugx.org/nozavroni/collections/license)](https://packagist.org/packages/nozavroni/collections)
+
 # Nozavroni/Collections
 
 Just another collections library for PHP5.6+. 
