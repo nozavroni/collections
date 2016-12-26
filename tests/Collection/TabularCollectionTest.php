@@ -244,6 +244,22 @@ class TabularCollectionTest extends AbstractCollectionTest
         $coll->nonExistantMethod('foo','bar');
     }
 
+
+
+    /**
+     * @expectedException BadMethodCallException
+     * @expectedExceptionMessage Method does not exist: Noz\Collection\TabularCollection::nonExistantMethod()
+     */
+    public function testTabularCollectionThrowsBadMethodCallExceptionOnBadMethodCallWithNoParams()
+    {
+        $coll = new TabularCollection([
+            ['id' => 2, 'name' => 'Luke', 'email' => 'luke.visinoni@gmail.com'],
+            ['id' => 3, 'name' => 'Dave', 'email' => 'dave.mason@gmail.com'],
+            ['id' => 5, 'name' => 'Joe', 'email' => 'joe.rogan@gmail.com'],
+        ]);
+        $coll->nonExistantMethod('foo');
+    }
+
     public function testWalkForTabularCollection()
     {
         $coll = new TabularCollection($this->testdata[TabularCollection::class]['user']);
