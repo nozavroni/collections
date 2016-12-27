@@ -14,6 +14,7 @@ use BadMethodCallException;
 use InvalidArgumentException;
 
 use function Noz\is_traversable;
+use SplObjectStorage;
 
 /**
  * Class ObjectCollection.
@@ -25,10 +26,57 @@ use function Noz\is_traversable;
 class ObjectCollection extends AbstractCollection
 {
     /**
+     * The required object type.
+     *
+     * @var string
+     */
+    protected $type;
+
+    /**
+     * ObjectCollection constructor.
+     *
+     * @param array|SplObjectStorage $data An array of objects or SplObjectStorage object
+     * @param string                 $type A class that all objects should be an instance of
+     */
+    public function __construct($data = null, $type = null)
+    {
+        if (is_null($data)) {
+            $data = [];
+        }
+        $this->setRequiredType($type);
+        parent::__construct($data);
+    }
+
+    /**
+     * Set the required object type.
+     *
+     * If a required type is set, all objects added to this collection must be of this type.
+     *
+     * @param string $type The required object type
+     *
+     * @return $this
+     */
+    public function setRequiredType($type)
+    {
+        $this->type = $type;
+
+        return $this;
+    }
+
+    /**
      * {@inheritdoc}
      */
     protected function prepareData($data)
     {
+        if ($data instanceof SplObjectStorage) {
+            $tmp = [];
+            foreach ($data as $obj) {
+                $tmp[spl_object_hash($obj)] = $obj;
+            }
+            // @todo Data is potentially still lost even though I copy all the objects from the SplObjectStorage object.
+            // These objects store not only objects, but also data associated with that object. That data is lost here.
+            $data = $tmp;
+        }
         return $data;
     }
 
@@ -64,9 +112,20 @@ class ObjectCollection extends AbstractCollection
      */
     protected function assertValidType($value)
     {
-        if (!is_object($value)) {
-            throw new InvalidArgumentException("Invalid value type: " . gettype($value) . ". Expecting an object.");
+        if (is_object($value)) {
+            if (is_null($this->type)) {
+                return;
+            }
+            if ($value instanceof $this->type) {
+                return;
+            }
+            throw new InvalidArgumentException(sprintf(
+                'Invalid object type "%s", expecting "%s".',
+                get_class($value),
+                $this->type
+            ));
         }
+        throw new InvalidArgumentException('Invalid value type: "' . gettype($value) . '". Expecting an object.');
     }
 
     /**

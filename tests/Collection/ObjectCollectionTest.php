@@ -120,4 +120,40 @@ class ObjectCollectionTest extends AbstractCollectionTest
 //        ]);
 //        \Noz\dd($objects->duplicates());
 //    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     * @expectedExceptionMessage Invalid value type: "string". Expecting an object.
+     */
+    public function testConstructorTypeParamRestrictsObjectCollectionTypeWithScalar()
+    {
+        $objects = new ObjectCollection(null, stdClass::class);
+        $objects->push("hi");
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     * @expectedExceptionMessage Invalid object type "ArrayIterator", expecting "stdClass".
+     */
+    public function testConstructorTypeParamRestrictsObjectCollectionType()
+    {
+        $objects = new ObjectCollection(null, stdClass::class);
+        $objects->push(new ArrayIterator([1,2,3]));
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     */
+    public function testConstructorTypeParamRestrictsObjectCollectionTypeWithScalarInConstructor()
+    {
+        $objects = new ObjectCollection(["hi"], stdClass::class);
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     */
+    public function testConstructorTypeParamRestrictsObjectCollectionTypeInConstructor()
+    {
+        $objects = new ObjectCollection([new ArrayIterator([1,2,3])], stdClass::class);
+    }
 }
