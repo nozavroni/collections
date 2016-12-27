@@ -134,6 +134,13 @@ class ObjectCollection extends AbstractCollection
     public function pad($size, $with = null)
     {
         $this->assertValidType($with);
-        return parent::pad($size, $with);
+        $data = $this->data;
+        if (($count = count($data)) < $size) {
+            while($count < $size) {
+                $with = clone $with;
+                $count = array_push($data, $with);
+            }
+        }
+        return new self($data);
     }
 }

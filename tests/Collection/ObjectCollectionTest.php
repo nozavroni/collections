@@ -86,4 +86,25 @@ class ObjectCollectionTest extends AbstractCollectionTest
         $this->assertSame($second, $objects->shift());
         $this->assertNull($objects->shift());
     }
+
+    /**
+     * @expectedException InvalidArgumentException
+     */
+    public function testPadMethodCanOnlyPadWithObjects()
+    {
+        $objects = new ObjectCollection([$first = new stdClass("first"), $second = new stdClass("second")]);
+        $padded = $objects->pad(5, $expected = "a string is not allowed");
+    }
+
+    public function testPadMethodPadsWithClonesOfGivenObject()
+    {
+        $objects = new ObjectCollection([$first = new stdClass("first"), $second = new stdClass("second")]);
+        $origsize = $objects->count();
+        $padded = $objects->pad($padsize = 5, $expected = new stdClass("this is a string"));
+        $this->assertEquals($padsize, $padded->count());
+        $this->assertEquals($origsize, $objects->count());
+        $this->assertNotSame($expected, $padded->pop());
+        $this->assertNotSame($expected, $padded->pop());
+        $this->assertNotSame($expected, $padded->pop());
+    }
 }
