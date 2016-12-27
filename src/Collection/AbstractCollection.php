@@ -748,7 +748,7 @@ abstract class AbstractCollection implements
     /**
      * Returns collection in reverse order.
      *
-     * @param null $preserveKeys True if you want to preserve collection's keys
+     * @param boolean $preserveKeys True if you want to preserve collection's keys
      *
      * @return AbstractCollection This collection in reverse order.
      */

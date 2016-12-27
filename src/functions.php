@@ -81,17 +81,17 @@ function dd($input, $exit = true, $label = null)
         $trace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 1);
         $label = 'File: ';
         $label .= pathinfo($trace[0]['file'], PATHINFO_FILENAME);
-        $label .= ':' . $trace[0]['line'];
-        echo $label . "\n";
+        $label .= ':'.$trace[0]['line'];
+        echo $label."\n";
     } else {
-        echo $label . "\n" . implode(
+        echo $label."\n".implode(
                 array_map(
-                    function () {
+                    function() {
                         return '-';
                     },
                     str_split($label)
                 )
-            ) . "\n";
+            )."\n";
     }
     var_dump($input);
     echo "\n";
