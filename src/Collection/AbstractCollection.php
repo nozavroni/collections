@@ -867,6 +867,7 @@ abstract class AbstractCollection implements
                 return false;
             }
         }
+
         return true;
     }
 
