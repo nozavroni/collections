@@ -583,8 +583,8 @@ abstract class AbstractCollection implements
      *
      * Returns a new collection, padded to the given size, with the given value.
      *
-     * @param int  $size The number of items that should be in the collection
-     * @param null $with The value to pad the collection with
+     * @param int   $size The number of items that should be in the collection
+     * @param mixed $with The value to pad the collection with
      *
      * @return AbstractCollection A new collection padded to specified length
      */

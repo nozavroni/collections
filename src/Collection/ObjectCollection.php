@@ -129,7 +129,14 @@ class ObjectCollection extends AbstractCollection
     }
 
     /**
-     * {@inheritdoc}
+     * Pad this collection to a certain size.
+     *
+     * Returns a new collection, padded to the given size, with clones of the given object.
+     *
+     * @param int    $size The number of items that should be in the collection
+     * @param object $with The value to pad the collection with
+     *
+     * @return ObjectCollection
      */
     public function pad($size, $with = null)
     {
