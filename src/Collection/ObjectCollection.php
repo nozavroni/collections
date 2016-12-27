@@ -35,8 +35,8 @@ class ObjectCollection extends AbstractCollection
     /**
      * ObjectCollection constructor.
      *
-     * @param array|SplObjectStorage $data An array of objects or SplObjectStorage object
-     * @param string                 $type A class that all objects should be an instance of
+     * @param array<object>|SplObjectStorage|null $data An array of objects or SplObjectStorage object
+     * @param string                              $type A class that all objects should be an instance of
      */
     public function __construct($data = null, $type = null)
     {
@@ -52,7 +52,7 @@ class ObjectCollection extends AbstractCollection
      *
      * If a required type is set, all objects added to this collection must be of this type.
      *
-     * @param string $type The required object type
+     * @param string|null $type The required object type
      *
      * @return $this
      */
@@ -66,23 +66,9 @@ class ObjectCollection extends AbstractCollection
     /**
      * {@inheritdoc}
      */
-//    public function __toString()
-//    {
-//        // @todo __toString is not supposed to throw an exception. I need to remove __toString
-//        // from AbstractCollection and only use it on collections where it makes sense, such as
-//        // CharCollection and the like...
-//        throw new BadMethodCallException(sprintf(
-//            'Objects of type, "%s" cannot be converted to a string.',
-//            __CLASS__
-//        ));
-//    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function join($delimiter = '')
     {
-        // @todo I need to remove join
+        // @todo I need to remove join and __toString
         // from AbstractCollection and only use it on collections where it makes sense, such as
         // CharCollection and the like...
         throw new BadMethodCallException(sprintf(
@@ -130,8 +116,8 @@ class ObjectCollection extends AbstractCollection
      *
      * Returns a new collection, padded to the given size, with clones of the given object.
      *
-     * @param int    $size The number of items that should be in the collection
-     * @param object $with The value to pad the collection with
+     * @param int         $size The number of items that should be in the collection
+     * @param object|null $with The value to pad the collection with
      *
      * @return ObjectCollection
      */
