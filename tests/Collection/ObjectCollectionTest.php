@@ -12,6 +12,7 @@ namespace NozTest\Collection;
 
 use ArrayIterator;
 use Exception;
+use InvalidArgumentException;
 use stdClass;
 use Noz\Collection\ObjectCollection;
 
@@ -25,5 +26,18 @@ class ObjectCollectionTest extends AbstractCollectionTest
             new Exception("this is an exception, but it's still an object")
         ]);
         $this->assertInstanceOf(ObjectCollection::class, $objects);
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     */
+    public function testInstantiateObjectCollectionWithNonObjectsThrowsException()
+    {
+        $objects = new ObjectCollection([
+            new stdClass("this is an object"),
+            new ArrayIterator(['this','is','an','object']),
+            new Exception("this is an exception, but it's still an object"),
+            "this is not an object, unfortunately"
+        ]);
     }
 }

@@ -1006,6 +1006,8 @@ abstract class AbstractCollection implements
      */
     protected function assertCorrectInputDataType($data)
     {
+        // @todo this is thrown whenever a collection is instantiated with the wrong data type
+        // it is not the right message usually... fix it.
         if (!$this->isConsistentDataStructure($data)) {
             throw new InvalidArgumentException(__CLASS__ . ' expected traversable data, got: ' . gettype($data));
         }
