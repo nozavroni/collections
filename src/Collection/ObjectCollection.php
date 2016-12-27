@@ -13,8 +13,8 @@ namespace Noz\Collection;
 use BadMethodCallException;
 use InvalidArgumentException;
 
-use function Noz\is_traversable;
 use SplObjectStorage;
+use function Noz\is_traversable;
 
 /**
  * Class ObjectCollection.
@@ -66,71 +66,6 @@ class ObjectCollection extends AbstractCollection
     /**
      * {@inheritdoc}
      */
-    protected function prepareData($data)
-    {
-        if ($data instanceof SplObjectStorage) {
-            $tmp = [];
-            foreach ($data as $obj) {
-                $tmp[spl_object_hash($obj)] = $obj;
-            }
-            // @todo Data is potentially still lost even though I copy all the objects from the SplObjectStorage object.
-            // These objects store not only objects, but also data associated with that object. That data is lost here.
-            $data = $tmp;
-        }
-        return $data;
-    }
-
-    /**
-     * Is correct input data type?
-     *
-     * @param mixed $data The data to assert correct type of
-     *
-     * @return bool
-     */
-    protected function isConsistentDataStructure($data)
-    {
-        // this collection may only contain scalar or null values
-        if (!is_traversable($data)) {
-            return false;
-        }
-        foreach ($data as $key => $val) {
-            try {
-                $this->assertValidType($val);
-            } catch (InvalidArgumentException $e) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Assert a value is of valid type.
-     *
-     * @param mixed $value The value to check type of
-     * @throws InvalidArgumentException
-     */
-    protected function assertValidType($value)
-    {
-        if (is_object($value)) {
-            if (is_null($this->type)) {
-                return;
-            }
-            if ($value instanceof $this->type) {
-                return;
-            }
-            throw new InvalidArgumentException(sprintf(
-                'Invalid object type "%s", expecting "%s".',
-                get_class($value),
-                $this->type
-            ));
-        }
-        throw new InvalidArgumentException('Invalid value type: "' . gettype($value) . '". Expecting an object.');
-    }
-
-    /**
-     * {@inheritdoc}
-     */
 //    public function __toString()
 //    {
 //        // @todo __toString is not supposed to throw an exception. I need to remove __toString
@@ -162,6 +97,7 @@ class ObjectCollection extends AbstractCollection
     public function set($index, $val)
     {
         $this->assertValidType($val);
+
         return parent::set($index, $val);
     }
 
@@ -173,6 +109,7 @@ class ObjectCollection extends AbstractCollection
         foreach ($items as $item) {
             $this->assertValidType($item);
         }
+
         return parent::push(...$items);
     }
 
@@ -184,6 +121,7 @@ class ObjectCollection extends AbstractCollection
         foreach ($items as $item) {
             $this->assertValidType($item);
         }
+
         return parent::unshift(...$items);
     }
 
@@ -202,11 +140,79 @@ class ObjectCollection extends AbstractCollection
         $this->assertValidType($with);
         $data = $this->data;
         if (($count = count($data)) < $size) {
-            while($count < $size) {
-                $with = clone $with;
+            while ($count < $size) {
+                $with  = clone $with;
                 $count = array_push($data, $with);
             }
         }
+
         return new self($data);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function prepareData($data)
+    {
+        if ($data instanceof SplObjectStorage) {
+            $tmp = [];
+            foreach ($data as $obj) {
+                $tmp[spl_object_hash($obj)] = $obj;
+            }
+            // @todo Data is potentially still lost even though I copy all the objects from the SplObjectStorage object.
+            // These objects store not only objects, but also data associated with that object. That data is lost here.
+            $data = $tmp;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Is correct input data type?
+     *
+     * @param mixed $data The data to assert correct type of
+     *
+     * @return bool
+     */
+    protected function isConsistentDataStructure($data)
+    {
+        // this collection may only contain scalar or null values
+        if (!is_traversable($data)) {
+            return false;
+        }
+        foreach ($data as $key => $val) {
+            try {
+                $this->assertValidType($val);
+            } catch (InvalidArgumentException $e) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Assert a value is of valid type.
+     *
+     * @param mixed $value The value to check type of
+     *
+     * @throws InvalidArgumentException
+     */
+    protected function assertValidType($value)
+    {
+        if (is_object($value)) {
+            if (is_null($this->type)) {
+                return;
+            }
+            if ($value instanceof $this->type) {
+                return;
+            }
+            throw new InvalidArgumentException(sprintf(
+                'Invalid object type "%s", expecting "%s".',
+                get_class($value),
+                $this->type
+            ));
+        }
+        throw new InvalidArgumentException('Invalid value type: "' . gettype($value) . '". Expecting an object.');
     }
 }
