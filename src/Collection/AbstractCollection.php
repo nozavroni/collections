@@ -92,10 +92,7 @@ abstract class AbstractCollection implements
      *
      * @return string A string representation of this collection
      *
-     * @todo Eventually I would like to add a $delim property so that
-     *     I can easily join collection items together with a particular
-     * character (or set of characters). I would then add a few methods
-     * to change the delim property. It would default to a comma.
+     * @todo Remove this method, it doesn't make sense on most collections. You can add it back to CharCollection.
      */
     public function __toString()
     {
@@ -370,7 +367,7 @@ abstract class AbstractCollection implements
      */
     public function getValueAtPosition($pos)
     {
-        return $this->data[$this->getKeyAtPosition($pos)];
+        return $this->get($this->getKeyAtPosition($pos));
     }
 
     /**
@@ -558,6 +555,7 @@ abstract class AbstractCollection implements
      */
     public function push(...$items)
     {
+        // @todo Should this work on a copy of $this->data?
         array_push($this->data, ...$items);
 
         return static::factory($this->data);
@@ -574,6 +572,7 @@ abstract class AbstractCollection implements
      */
     public function unshift(...$items)
     {
+        // @todo Should this work on a copy of $this->data?
         array_unshift($this->data, ...$items);
 
         return static::factory($this->data);
@@ -584,8 +583,8 @@ abstract class AbstractCollection implements
      *
      * Returns a new collection, padded to the given size, with the given value.
      *
-     * @param int  $size The number of items that should be in the collection
-     * @param null $with The value to pad the collection with
+     * @param int   $size The number of items that should be in the collection
+     * @param mixed $with The value to pad the collection with
      *
      * @return AbstractCollection A new collection padded to specified length
      */
@@ -832,7 +831,9 @@ abstract class AbstractCollection implements
      */
     public static function factory($data = null)
     {
-        if (static::isTabular($data)) {
+        if (static::isAllObjects($data)) {
+            $class = ObjectCollection::class;
+        } elseif (static::isTabular($data)) {
             $class = TabularCollection::class;
         } elseif (static::isMultiDimensional($data)) {
             $class = MultiCollection::class;
@@ -848,6 +849,29 @@ abstract class AbstractCollection implements
     }
 
     /**
+     * Is data structure all objects?
+     *
+     * Does the data structure passed in contain only objects?
+     *
+     * @param mixed $data The data structure to check
+     *
+     * @return bool
+     */
+    public static function isAllObjects($data)
+    {
+        if (!is_traversable($data) || empty($data)) {
+            return false;
+        }
+        foreach ($data as $value) {
+            if (!is_object($value)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Is input data tabular?
      *
      * Returns true if input data is tabular in nature. This means that it is a
@@ -859,7 +883,7 @@ abstract class AbstractCollection implements
      */
     public static function isTabular($data)
     {
-        if (!is_traversable($data)) {
+        if (!is_traversable($data) || empty($data)) {
             return false;
         }
         foreach ($data as $row) {
@@ -898,7 +922,7 @@ abstract class AbstractCollection implements
      */
     public static function isMultiDimensional($data)
     {
-        if (!is_traversable($data)) {
+        if (!is_traversable($data) || empty($data)) {
             return false;
         }
         foreach ($data as $elem) {
@@ -919,7 +943,7 @@ abstract class AbstractCollection implements
      */
     public static function isAllNumeric($data)
     {
-        if (!is_traversable($data)) {
+        if (!is_traversable($data) || empty($data)) {
             return false;
         }
         foreach ($data as $val) {
@@ -983,6 +1007,8 @@ abstract class AbstractCollection implements
      */
     protected function assertCorrectInputDataType($data)
     {
+        // @todo this is thrown whenever a collection is instantiated with the wrong data type
+        // it is not the right message usually... fix it.
         if (!$this->isConsistentDataStructure($data)) {
             throw new InvalidArgumentException(__CLASS__ . ' expected traversable data, got: ' . gettype($data));
         }

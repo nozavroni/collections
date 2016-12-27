@@ -17,6 +17,7 @@
           <file>tests/Collection/NumericCollectionTest.php</file>
           <file>tests/Collection/MultiCollectionTest.php</file>
           <file>tests/Collection/TabularCollectionTest.php</file>
+          <file>tests/Collection/ObjectCollectionTest.php</file>
       </testsuite>
     </testsuites>
     <filter>
