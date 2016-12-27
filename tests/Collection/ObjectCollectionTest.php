@@ -107,4 +107,17 @@ class ObjectCollectionTest extends AbstractCollectionTest
         $this->assertNotSame($expected, $padded->pop());
         $this->assertNotSame($expected, $padded->pop());
     }
+
+    // @todo Remove duplicates method from AbstractCollection
+//    public function testDuplicatesMethod()
+//    {
+//        $objects = new ObjectCollection([
+//            $first = new stdClass("first"),
+//            $second = new stdClass("second"),
+//            $secondfirst = new stdClass("first"),
+//            $first,
+//            $second
+//        ]);
+//        \Noz\dd($objects->duplicates());
+//    }
 }
