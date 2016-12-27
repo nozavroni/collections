@@ -72,16 +72,16 @@ class ObjectCollection extends AbstractCollection
     /**
      * {@inheritdoc}
      */
-    public function __toString()
-    {
-        // @todo __toString is not supposed to throw an exception. I need to remove __toString
-        // from AbstractCollection and only use it on collections where it makes sense, such as
-        // CharCollection and the like...
-        throw new BadMethodCallException(sprintf(
-            'Objects of type, "%s" cannot be converted to a string.',
-            __CLASS__
-        ));
-    }
+//    public function __toString()
+//    {
+//        // @todo __toString is not supposed to throw an exception. I need to remove __toString
+//        // from AbstractCollection and only use it on collections where it makes sense, such as
+//        // CharCollection and the like...
+//        throw new BadMethodCallException(sprintf(
+//            'Objects of type, "%s" cannot be converted to a string.',
+//            __CLASS__
+//        ));
+//    }
 
     /**
      * {@inheritdoc}

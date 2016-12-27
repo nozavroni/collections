@@ -11,6 +11,7 @@
 namespace NozTest\Collection;
 
 use ArrayIterator;
+use BadMethodCallException;
 use Exception;
 use InvalidArgumentException;
 use stdClass;
@@ -39,5 +40,30 @@ class ObjectCollectionTest extends AbstractCollectionTest
             new Exception("this is an exception, but it's still an object"),
             "this is not an object, unfortunately"
         ]);
+    }
+
+    /**
+     * @expectedException BadMethodCallException
+     */
+    public function testObjectCollectionCannotBeCastToString()
+    {
+        $objects = new ObjectCollection([new stdClass]);
+        $objects = $objects->join();
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     */
+    public function testSetThrowsExceptionIfPassedNonObject()
+    {
+        $objects = new ObjectCollection();
+        $objects = $objects->set("index", "this is not an object");
+    }
+
+    public function testSetMethodSetsObjectAtGivenIndex()
+    {
+        $objects = new ObjectCollection();
+        $objects = $objects->set("index", $expected = new stdClass);
+        $this->assertSame($expected, $objects->get("index"));
     }
 }
