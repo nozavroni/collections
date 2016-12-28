@@ -748,4 +748,23 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertCount(3, $coll1->each($callback, $coll2));
         $this->assertCount(0, $coll1->each($callback, $coll3));
     }
+
+    public function testIndexOfReturnsIndexForGivenValue()
+    {
+        $coll = new Collection(['foo','bar','baz', 'boo' => 'woo']);
+        $this->assertEquals(1, $coll->indexOf('bar'));
+        $this->assertEquals('boo', $coll->indexOf('woo'));
+        $this->assertNull($coll->indexOf('notinarray', false));
+    }
+
+    /**
+     * @expectedException \OutOfBoundsException
+     */
+    public function testIndexOfThrowsExceptionIfValueNotFoundAndThrowParamIsTrue()
+    {
+        $coll = new Collection(['foo','bar','baz', 'boo' => 'woo']);
+        $this->assertEquals(1, $coll->indexOf('bar'));
+        $this->assertEquals('boo', $coll->indexOf('woo'));
+        $this->assertNull($coll->indexOf('notinarray', true));
+    }
 }

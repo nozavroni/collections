@@ -14,6 +14,7 @@ use ArrayAccess;
 use ArrayIterator;
 use Closure;
 use Countable;
+use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Iterator;
 use OutOfBoundsException;
@@ -403,6 +404,34 @@ abstract class AbstractCollection implements
         $pairs = $this->pairs();
 
         return $pairs[$this->getKeyAtPosition($pos)];
+    }
+
+    /**
+     * Get index of a value.
+     *
+     * Given a value, this method will return the index of the first occurrence of that value.
+     *
+     * @param mixed $value Value to get the index of
+     * @param bool  $throw Whether to throw an exception if value isn't found
+     *
+     * @return int|null|string
+     */
+    public function indexOf($value, $throw = true)
+    {
+        $return = null;
+        $this->first(function($val, $key) use (&$return, $value) {
+            if ($val == $value) {
+                $return = $key;
+                return true;
+            }
+        });
+        if ($throw && is_null($return)) {
+            throw new OutOfBoundsException(sprintf(
+                'Value "%s" not found in collection.',
+                $value
+            ));
+        }
+        return $return;
     }
 
     /**
