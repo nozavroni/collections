@@ -1,5 +1,4 @@
 <?php
-
 /*
  * Nozavroni/Collections
  * Just another collections library for PHP5.6+.
@@ -10,9 +9,11 @@
  */
 namespace Noz;
 
+use InvalidArgumentException;
 use Iterator;
-use Noz\Collection\AbstractCollection;
 use Noz\Collection\Collection;
+use Noz\Contracts\CollectionInterface;
+use Traversable;
 
 /**
  * Collection factory.
@@ -22,15 +23,13 @@ use Noz\Collection\Collection;
  * additional input types that will make this function more flexible and forgiving
  * than simply instantiating a Collection object, but for now the two are identical.
  *
- * @param array|Iterator $in Either an array or an iterator of data
+ * @param array|Iterator $data Either an array or an iterator of data
  *
- * @return AbstractCollection A collection object containing data from $in
- *
- * @see AbstractCollection::__construct() (alias)
+ * @return CollectionInterface
  */
-function collect($in = null)
+function collect($data = null)
 {
-    return Collection::factory($in);
+    return Collection::factory($data);
 }
 
 /**
@@ -41,7 +40,7 @@ function collect($in = null)
  * the result.
  *
  * @param callable $callback The callback function to invoke
- * @param array ...$args The args to pass to your callable
+ * @param array ...$args     The args to pass to your callable
  *
  * @return mixed The result of your invoked callable
  */
@@ -58,13 +57,196 @@ function invoke(callable $callback, ...$args)
  * This function was written simply because I was tired of if statements that checked
  * whether a variable was an array or a descendant of \Iterator. So I wrote this guy.
  *
- * @param mixed $input The variable to determine traversability
+ * @param mixed $data The variable to determine traversability
  *
  * @return bool True if $input is an array or an Iterator
  */
-function is_traversable($input)
+function is_traversable($data)
 {
-    return is_array($input) || $input instanceof Iterator;
+    return is_array($data) || $data instanceof Traversable;
+}
+
+/**
+ * Can data be converted to an array?
+ *
+ * @param mixed $data The data to check
+ *
+ * @return bool
+ */
+function is_arrayable($data)
+{
+    if (!is_array($data)) {
+        if (is_object($data)) {
+            return (
+                method_exists($data, 'toArray') ||
+                $data instanceof Traversable
+            );
+        }
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Convert any traversable to an array.
+ *
+ * @todo I'm not sure if this function is necessary or not. Does iterator_to_array do everything this can do?
+ *
+ * @param Traversable $data Traversable data
+ *
+ * @return array
+ */
+function traversable_to_array(Traversable $data)
+{
+    $arr = [];
+    foreach ($data as $key => $val) {
+        $arr[$key] = $val;
+    }
+    return $arr;
+}
+
+/**
+ * Convert data to an array.
+ *
+ * Accepts any kind of data and converts it to an array. If strict mode is on, only data that returns true from
+ * is_arrayable() will be converted to an array. Anything else will cause an InvalidArgumentException to be thrown.
+
+ * @param mixed $data   Data to convert to array
+ * @param bool  $strict Whether to use strict mode
+
+ * @return array
+ *
+ * @throws InvalidArgumentException
+ */
+function to_array($data, $strict = true)
+{
+    if (is_arrayable($data)) {
+        if (is_array($data)) {
+            return $data;
+        }
+        if ($data instanceof Iterator) {
+            return iterator_to_array($data);
+        }
+        if ($data instanceof Traversable) {
+            return traversable_to_array($data);
+        }
+        if (method_exists($data, 'toArray')) {
+            return $data->toArray();
+        }
+    }
+    if ($strict) {
+        throw new InvalidArgumentException(sprintf(
+            'Invalid argument for "%s". Cannot convert "%s" to an array.',
+            __FUNCTION__,
+            typeof($data)
+        ));
+    }
+    if (is_object($data)) {
+        $values = [];
+        foreach ($data as $key => $val) {
+            $values[$key] = $val;
+        }
+        return $values;
+    }
+    if (is_null($data)) {
+        return [];
+    }
+    return [$data];
+}
+
+/**
+ * Get data type.
+ *
+ * Inspects data to determine its type.
+ *
+ * @param mixed  $data       The data to check
+ * @param bool   $meta       Whether to include meta data such as length/size
+// * @param string $returnType What type of value to return (array or string)
+ *
+ * @return string
+ */
+function typeof($data, $meta = true/*, $returnType = 'string'*/)
+{
+    $type = gettype($data);
+    if ($meta) {
+        switch($type) {
+            case 'object':
+                $class = get_class($data);
+                return "{$type} <{$class}>";
+            case 'resource':
+                $restype = get_resource_type($data);
+                return "{$type} <{$restype}>";
+        }
+    } else {
+        switch($type) {
+            case 'object':
+                return get_class($data);
+            case 'resource':
+                return get_resource_type($data);
+        }
+    }
+    return $type;
+//    $params = [
+//        'type' => strtolower(gettype($data)),
+//        'class' => null,
+//        'size' => null,
+//        'value' => null
+//    ];
+//    switch($params['type']) {
+//        case 'object':
+//            $params['class'] = get_class($data);
+//            break;
+//        case 'resource':
+//            $params['class'] = get_resource_type($data);
+//            break;
+//        case 'array':
+//            $params['size'] = count($data);
+//            break;
+//        case 'boolean':
+//            $params['value'] = $data ? 'true' : 'false';
+//            break;
+//        case 'string':
+//            $params['size'] = strlen($data);
+//            $params['value'] = $data;
+//            break;
+//        case 'integer':
+//            $params['size'] = strlen($data);
+//            $params['value'] = $data;
+//            break;
+//        case 'double':
+//            list($real, $decimal) = explode('.', $data, 2);
+//            $params['size'] = strlen($real) . ',' . strlen($decimal);
+//            $params['value'] = $data;
+//            break;
+//        case 'null':
+//            break;
+//        case 'unknown type':
+//        default:
+//            $params['type'] = 'undefined';
+//            break;
+//    }
+//    if ($returnType == 'array') {
+//        if (!$meta) {
+//            return ['type' => $params['type']];
+//        }
+//        return collect($params)->filter(function($val) {
+//            return !is_null($val);
+//        })->toArray();
+//    }
+//    if (!$meta) {
+//        return $params['type'];
+//    }
+//    $return = $params['type'];
+//    if (!is_null($params['class'])) {
+//        $return .= " <{$params['class']}>";
+//    }
+//    if (!is_null($params['size'])) {
+//        $return .= " <{$params['size']}>";
+//    }
+//    if (!is_null($params['value'])) {
+//        $return .= " ({$params['value']})";
+//    }
+//    return $return;
 }
 
 /**

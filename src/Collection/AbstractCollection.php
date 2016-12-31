@@ -1,5 +1,4 @@
 <?php
-
 /*
  * Nozavroni/Collections
  * Just another collections library for PHP5.6+.
@@ -12,14 +11,18 @@ namespace Noz\Collection;
 
 use ArrayAccess;
 use ArrayIterator;
-use Closure;
 use Countable;
-use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Iterator;
+use Noz\Contracts\ArrayableInterface;
+use Noz\Contracts\CollectionInterface;
+use Noz\Contracts\The;
 use OutOfBoundsException;
 
-use function Noz\is_traversable;
+use function Noz\is_traversable,
+             Noz\typeof,
+             Noz\collect,
+             Noz\is_arrayable;
 
 /**
  * Class AbstractCollection.
@@ -37,6 +40,8 @@ use function Noz\is_traversable;
  * @todo Implement Serializable, other Interfaces
  */
 abstract class AbstractCollection implements
+    CollectionInterface,
+    ArrayableInterface,
     ArrayAccess,
     Countable,
     Iterator
@@ -62,6 +67,72 @@ abstract class AbstractCollection implements
     }
 
     /**
+     * Set collection data.
+     *
+     * Sets the collection data.
+     *
+     * @param array $data The data to wrap
+     *
+     * @return $this
+     */
+    protected function setData($data)
+    {
+        if (is_null($data)) {
+            $data = [];
+        }
+        $this->assertCorrectInputDataType($data);
+        $data = $this->prepareData($data);
+        foreach ($data as $index => $value) {
+            $this->set($index, $value);
+        }
+        reset($this->data);
+
+        return $this;
+    }
+
+    /**
+     * Assert input data is of the correct structure.
+     *
+     * @param mixed $data Data to check
+     *
+     * @throws InvalidArgumentException If invalid data structure
+     */
+    protected function assertCorrectInputDataType($data)
+    {
+        // @todo this is thrown whenever a collection is instantiated with the wrong data type
+        // it is not the right message usually... fix it.
+        if (!$this->isConsistentDataStructure($data)) {
+            throw new InvalidArgumentException(__CLASS__ . ' expected traversable data, got: ' . gettype($data));
+        }
+    }
+
+    /**
+     * Determine whether data is consistent with a given collection type.
+     *
+     * This method is used to determine whether input data is consistent with a
+     * given collection type. For instance, CharCollection requires a string.
+     * NumericCollection requires an array or traversable set of numeric data.
+     * TabularCollection requires a two-dimensional data structure where all the
+     * keys are the same in every row.
+     *
+     * @param mixed $data Data structure to check for consistency
+     *
+     * @return bool
+     */
+    abstract protected function isConsistentDataStructure($data);
+
+    /**
+     * Convert input data to an array.
+     *
+     * Convert the input data to an array that can be worked with by a collection.
+     *
+     * @param mixed $data The input data
+     *
+     * @return array
+     */
+    abstract protected function prepareData($data);
+
+    /**
      * Invoke object.
      *
      * Magic "invoke" method. Called when object is invoked as if it were a function.
@@ -69,7 +140,7 @@ abstract class AbstractCollection implements
      * @param mixed $val   The value (depends on other param value)
      * @param mixed $index The index (depends on other param value)
      *
-     * @return array|AbstractCollection (Depends on parameter values)
+     * @return array|CollectionInterface (Depends on parameter values)
      */
     public function __invoke($val = null, $index = null)
     {
@@ -89,6 +160,24 @@ abstract class AbstractCollection implements
     }
 
     /**
+     * Get collection as array.
+     *
+     * @return array This collection as an array
+     */
+    public function toArray()
+    {
+        $arr = [];
+        foreach ($this as $index => $value) {
+            if (is_arrayable($value)) {
+                $value = $value->toArray();
+            }
+            $arr[$index] = $value;
+        }
+
+        return $arr;
+    }
+
+    /**
      * Convert collection to string.
      *
      * @return string A string representation of this collection
@@ -99,8 +188,6 @@ abstract class AbstractCollection implements
     {
         return $this->join();
     }
-
-    // BEGIN ArrayAccess methods
 
     /**
      * Whether a offset exists.
@@ -127,7 +214,7 @@ abstract class AbstractCollection implements
      */
     public function offsetGet($offset)
     {
-        return $this->get($offset, null, true);
+        return $this->retrieve($offset);
     }
 
     /**
@@ -155,18 +242,22 @@ abstract class AbstractCollection implements
         $this->delete($offset);
     }
 
-    // END ArrayAccess methods
-
-    // BEGIN Countable methods
-
-    public function count()
+    /**
+     * Get count.
+     * If a callback is supplied, this method will return the number of items that cause the callback to return true.
+     * Otherwise, all items in the collection will be counted.
+     *
+     * @param callable $callback The (optional) callback function
+     *
+     * @return int
+     */
+    public function count(callable $callback = null)
     {
+        if (!is_null($callback)) {
+            return $this->filter($callback)->count();
+        }
         return count($this->data);
     }
-
-    // END Countable methods
-
-    // BEGIN Iterator methods
 
     /**
      * Return the current element.
@@ -248,7 +339,7 @@ abstract class AbstractCollection implements
         }
         $alg($this->data);
 
-        return static::factory($this->data);
+        return collect($this->data);
     }
 
     /**
@@ -261,35 +352,6 @@ abstract class AbstractCollection implements
     public function has($index)
     {
         return array_key_exists($index, $this->data);
-    }
-
-    /**
-     * Get value at a given index.
-     *
-     * Accessor for this collection of data. You can optionally provide a default
-     * value for when the collection doesn't find a value at the given index. It can
-     * also optionally throw an OutOfBoundsException if no value is found.
-     *
-     * @param mixed $index   The index of the data you want to get
-     * @param mixed $default The default value to return if none available
-     * @param bool  $throw   True if you want an exception to be thrown if no data found at $index
-     *
-     * @throws OutOfBoundsException If $throw is true and $index isn't found
-     *
-     * @return mixed The data found at $index or failing that, the $default
-     *
-     * @todo Use OffsetGet, OffsetSet, etc. internally here and on set, has, delete, etc.
-     */
-    public function get($index, $default = null, $throw = false)
-    {
-        if (isset($this->data[$index])) {
-            return $this->data[$index];
-        }
-        if ($throw) {
-            throw new OutOfBoundsException(__CLASS__ . ' could not find value at index ' . $index);
-        }
-
-        return $default;
     }
 
     /**
@@ -335,78 +397,6 @@ abstract class AbstractCollection implements
     }
 
     /**
-     * Does this collection have a value at specified numerical position?
-     *
-     * Returns true if collection contains a value (any value including null)
-     * at specified numerical position.
-     *
-     * @param int $pos The position
-     *
-     * @return bool
-     *
-     * @todo I feel like it would make more sense  to have this start at position 1 rather than 0
-     */
-    public function hasPosition($pos)
-    {
-        try {
-            $this->getKeyAtPosition($pos);
-
-            return true;
-        } catch (OutOfBoundsException $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Return value at specified numerical position.
-     *
-     * @param int $pos The numerical position
-     *
-     * @throws OutOfBoundsException if no pair at position
-     *
-     * @return mixed
-     */
-    public function getValueAtPosition($pos)
-    {
-        return $this->get($this->getKeyAtPosition($pos));
-    }
-
-    /**
-     * Return key at specified numerical position.
-     *
-     * @param int $pos The numerical position
-     *
-     * @throws OutOfBoundsException if no pair at position
-     *
-     * @return int|string
-     */
-    public function getKeyAtPosition($pos)
-    {
-        $i = 0;
-        foreach ($this as $key => $val) {
-            if ($i === $pos) {
-                return $key;
-            }
-            $i++;
-        }
-        throw new OutOfBoundsException("No element at expected position: $pos");
-    }
-
-    /**
-     * @param int $pos The numerical position
-     *
-     * @throws OutOfBoundsException if no pair at position
-     *
-     * @return array
-     */
-    public function getPairAtPosition($pos)
-    {
-        $pairs = $this->pairs();
-
-        return $pairs[$this->getKeyAtPosition($pos)];
-    }
-
-    /**
      * Get index of a value.
      *
      * Given a value, this method will return the index of the first occurrence of that value.
@@ -435,31 +425,13 @@ abstract class AbstractCollection implements
     }
 
     /**
-     * Get collection as array.
-     *
-     * @return array This collection as an array
-     */
-    public function toArray()
-    {
-        $arr = [];
-        foreach ($this as $index => $value) {
-            if (is_object($value) && method_exists($value, 'toArray')) {
-                $value = $value->toArray();
-            }
-            $arr[$index] = $value;
-        }
-
-        return $arr;
-    }
-
-    /**
      * Get this collection's keys as a collection.
      *
-     * @return AbstractCollection Containing this collection's keys
+     * @return CollectionInterface Containing this collection's keys
      */
     public function keys()
     {
-        return static::factory(array_keys($this->data));
+        return collect(array_keys($this->data));
     }
 
     /**
@@ -467,11 +439,11 @@ abstract class AbstractCollection implements
      *
      * This method returns this collection's values but completely re-indexed (numerically).
      *
-     * @return AbstractCollection Containing this collection's values
+     * @return CollectionInterface Containing this collection's values
      */
     public function values()
     {
-        return static::factory(array_values($this->data));
+        return collect(array_values($this->data));
     }
 
     /**
@@ -482,12 +454,12 @@ abstract class AbstractCollection implements
      *
      * @param Traversable|array $data The data to merge with this collection
      *
-     * @return AbstractCollection A new collection with $data merged in
+     * @return CollectionInterface A new collection with $data merged in
      */
     public function merge($data)
     {
         $this->assertCorrectInputDataType($data);
-        $coll = static::factory($this->data);
+        $coll = collect($this->data);
         foreach ($data as $index => $value) {
             $coll->set($index, $value);
         }
@@ -534,26 +506,6 @@ abstract class AbstractCollection implements
     }
 
     /**
-     * Get duplicate values.
-     *
-     * Returns a collection of arrays where the key is the duplicate value
-     * and the value is an array of keys from the original collection.
-     *
-     * @return AbstractCollection A new collection with duplicate values.
-     */
-    public function duplicates()
-    {
-        $dups = [];
-        $this->walk(function ($val, $key) use (&$dups) {
-            $dups[$val][] = $key;
-        });
-
-        return static::factory($dups)->filter(function ($val) {
-            return count($val) > 1;
-        });
-    }
-
-    /**
      * Pop an element off the end of this collection.
      *
      * @return mixed The last item in this collectio n
@@ -574,40 +526,6 @@ abstract class AbstractCollection implements
     }
 
     /**
-     * Push a item(s) onto the end of this collection.
-     *
-     * Returns a new collection with $items added.
-     *
-     * @param array ...$items Any number of arguments will be pushed onto the
-     *
-     * @return AbstractCollection
-     */
-    public function push(...$items)
-    {
-        // @todo Should this work on a copy of $this->data?
-        array_push($this->data, ...$items);
-
-        return static::factory($this->data);
-    }
-
-    /**
-     * Unshift item(s) onto the beginning of this collection.
-     *
-     * Returns a new collection with $items added.
-     *
-     * @param array ...$items Items to unshift onto collection
-     *
-     * @return AbstractCollection
-     */
-    public function unshift(...$items)
-    {
-        // @todo Should this work on a copy of $this->data?
-        array_unshift($this->data, ...$items);
-
-        return static::factory($this->data);
-    }
-
-    /**
      * Pad this collection to a certain size.
      *
      * Returns a new collection, padded to the given size, with the given value.
@@ -615,11 +533,11 @@ abstract class AbstractCollection implements
      * @param int   $size The number of items that should be in the collection
      * @param mixed $with The value to pad the collection with
      *
-     * @return AbstractCollection A new collection padded to specified length
+     * @return CollectionInterface A new collection padded to specified length
      */
     public function pad($size, $with = null)
     {
-        return static::factory(array_pad($this->data, $size, $with));
+        return collect(array_pad($this->data, $size, $with));
     }
 
     /**
@@ -630,11 +548,16 @@ abstract class AbstractCollection implements
      *
      * @param callable $callback The callback to apply
      *
-     * @return AbstractCollection A new collection with callback return values
+     * @return CollectionInterface A new collection with callback return values
      */
     public function map(callable $callback)
     {
-        return static::factory(array_map($callback, $this->data));
+        $iter = 0;
+        $transform = [];
+        foreach ($this as $key => $val) {
+            $transform[$key] = $callback($val, $key, $iter++);
+        }
+        return collect($transform);
     }
 
     /**
@@ -658,64 +581,21 @@ abstract class AbstractCollection implements
     }
 
     /**
-     * Iterate over each item that matches criteria in callback.
+     * Iterate over each item in the collection, calling $callback on it. Return false to stop iterating.
      *
-     * @param Closure     $callback A callback to use
-     * @param object|null $bindTo   The object to bind to
+     * @param callable    $callback A callback to use
      *
-     * @return AbstractCollection
+     * @return $this
      */
-    public function each(Closure $callback, $bindTo = null)
+    public function each(callable $callback)
     {
-        if (is_null($bindTo)) {
-            $bindTo = $this;
-        }
-        if (!is_object($bindTo)) {
-            throw new InvalidArgumentException('Second argument must be an object.');
-        }
-        $cb     = $callback->bindTo($bindTo);
-        $return = [];
         foreach ($this as $key => $val) {
-            if ($cb($val, $key)) {
-                $return[$key] = $val;
+            if (!$callback($val, $key)) {
+                break;
             }
         }
 
-        return static::factory($return);
-    }
-
-    /**
-     * Get each key/value as an array pair.
-     *
-     * Returns a collection of arrays where each item in the collection is [key,value]
-     *
-     * @return AbstractCollection
-     */
-    public function pairs()
-    {
-        return static::factory(array_map(
-            function ($key, $val) {
-                return [$key, $val];
-            },
-            array_keys($this->data),
-            array_values($this->data)
-        ));
-    }
-
-    /**
-     * Reduce the collection to a single value.
-     *
-     * Using a callback function, this method will reduce this collection to a
-     * single value.
-     *
-     * @param callable $callback The callback function used to reduce
-     * @param null     $initial  The initial carry value
-     *
-     * @return mixed The single value produced by reduction algorithm
-     */
-    public function reduce(callable $callback, $initial = null)
-    {
-        return array_reduce($this->data, $callback, $initial);
+        return $this;
     }
 
     /**
@@ -725,15 +605,41 @@ abstract class AbstractCollection implements
      * a new collection containing only the values that weren't filtered.
      *
      * @param callable $callback The callback function used to filter
-     * @param int      $flag     array_filter flag(s) (ARRAY_FILTER_USE_KEY or ARRAY_FILTER_USE_BOTH)
      *
-     * @return AbstractCollection A new collection with only values that weren't filtered
-     *
-     * @see php.net array_filter
+     * @return CollectionInterface A new collection with only values that weren't filtered
      */
-    public function filter(callable $callback, $flag = ARRAY_FILTER_USE_BOTH)
+    public function filter(callable $callback)
     {
-        return static::factory(array_filter($this->data, $callback, $flag));
+        $iter = 0;
+        $filtered = [];
+        foreach ($this as $key => $val) {
+            if ($callback($val, $key, $iter++)) {
+                $filtered[$key] = $val;
+            }
+        }
+        return collect($filtered);
+    }
+
+    /**
+     * Filter the collection.
+     *
+     * Using a callback function, this method will filter out unwanted values, returning
+     * a new collection containing only the values that weren't filtered.
+     *
+     * @param callable $callback The callback function used to filter
+     *
+     * @return CollectionInterface A new collection with only values that weren't filtered
+     */
+    public function exclude(callable $callback)
+    {
+        $iter = 0;
+        $filtered = [];
+        foreach ($this as $key => $val) {
+            if (!$callback($val, $key, $iter++)) {
+                $filtered[$key] = $val;
+            }
+        }
+        return collect($filtered);
     }
 
     /**
@@ -742,19 +648,24 @@ abstract class AbstractCollection implements
      * Using a callback function, this method will return the first item in the collection
      * that causes the callback function to return true.
      *
-     * @param callable $callback The callback function
+     * @param callable|null $callback The callback function
+     * @param mixed|null    $default  The default return value
      *
-     * @return null|mixed The first item in the collection that causes callback to return true
+     * @return mixed
      */
-    public function first(callable $callback)
+    public function first(callable $callback = null, $default = null)
     {
-        foreach ($this->data as $index => $value) {
+        if (is_null($callback)) {
+            return $this->getOffset(0);
+        }
+
+        foreach ($this as $index => $value) {
             if ($callback($value, $index)) {
                 return $value;
             }
         }
 
-        return null;
+        return $default;
     }
 
     /**
@@ -763,27 +674,28 @@ abstract class AbstractCollection implements
      * Using a callback function, this method will return the last item in the collection
      * that causes the callback function to return true.
      *
-     * @param callable $callback The callback function
+     * @param callable|null $callback The callback function
+     * @param mixed|null    $default  The default return value
      *
-     * @return null|mixed The last item in the collection that causes callback to return true
+     * @return mixed
      */
-    public function last(callable $callback)
+    public function last(callable $callback = null, $default = null)
     {
-        $reverse = $this->reverse(true);
-
+        $reverse = $this->reverse();
+        if (is_null($callback)) {
+            return $reverse->getOffset(0);
+        }
         return $reverse->first($callback);
     }
 
     /**
      * Returns collection in reverse order.
      *
-     * @param null $preserveKeys True if you want to preserve collection's keys
-     *
-     * @return AbstractCollection This collection in reverse order.
+     * @return CollectionInterface This collection in reverse order.
      */
-    public function reverse($preserveKeys = null)
+    public function reverse()
     {
-        return static::factory(array_reverse($this->data, $preserveKeys));
+        return collect(array_reverse($this->data, true));
     }
 
     /**
@@ -791,60 +703,11 @@ abstract class AbstractCollection implements
      *
      * Returns a collection of all the unique items in this collection.
      *
-     * @return AbstractCollection This collection with duplicate items removed
+     * @return CollectionInterface This collection with duplicate items removed
      */
     public function unique()
     {
-        return static::factory(array_unique($this->data));
-    }
-
-    /**
-     * Join collection together using a delimiter.
-     *
-     * @param string $delimiter The delimiter string/char
-     *
-     * @return string
-     */
-    public function join($delimiter = '')
-    {
-        return implode($delimiter, $this->data);
-    }
-
-    /**
-     * Counts how many times each value occurs in a collection.
-     *
-     * Returns a new collection with values as keys and how many times that
-     * value appears in the collection. Works best with scalar values but will
-     * attempt to work on collections of objects as well.
-     *
-     * @return AbstractCollection
-     *
-     * @todo Right now, collections of arrays or objects are supported via the
-     * __toString() or spl_object_hash()
-     * @todo NumericCollection::counts() does the same thing...
-     */
-    public function frequency()
-    {
-        $frequency = [];
-        foreach ($this as $key => $val) {
-            if (!is_scalar($val)) {
-                if (!is_object($val)) {
-                    $val = new ArrayIterator($val);
-                }
-
-                if (method_exists($val, '__toString')) {
-                    $val = (string) $val;
-                } else {
-                    $val = spl_object_hash($val);
-                }
-            }
-            if (!isset($frequency[$val])) {
-                $frequency[$val] = 0;
-            }
-            $frequency[$val]++;
-        }
-
-        return static::factory($frequency);
+        return collect(array_unique($this->data));
     }
 
     /**
@@ -856,7 +719,7 @@ abstract class AbstractCollection implements
      *
      * @param mixed $data The data to wrap
      *
-     * @return AbstractCollection A collection containing $data
+     * @return CollectionInterface A collection containing $data
      */
     public static function factory($data = null)
     {
@@ -1001,71 +864,485 @@ abstract class AbstractCollection implements
             is_numeric($data);
     }
 
+    /**
+     * @inheritdoc
+     */
+    public function hasOffset($offset)
+    {
+        try {
+            $this->getOffsetKey($offset);
+            return true;
+        } catch (OutOfBoundsException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getOffsetKey($offset)
+    {
+        if (!is_null($key = $this->foldRight(function($val, $carry, $key, $iter) use ($offset) {
+            return ($iter === $offset) ? $key : $carry;
+        }))) {
+            return $key;
+        }
+        throw new OutOfBoundsException("Offset does not exist: $offset");
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getOffset($offset)
+    {
+        return $this->retrieve($this->getOffsetKey($offset));
+    }
+
+    /**
+     * @param int $pos The numerical position
+     *
+     * @throws OutOfBoundsException if no pair at position
+     *
+     * @return array
+     */
+    public function getPairAtPosition($pos)
+    {
+        $pairs = $this->pairs();
+
+        return $pairs[$this->getKeyAtPosition($pos)];
+    }
+
+    /**
+     * Get each key/value as an array pair.
+     *
+     * Returns a collection of arrays where each item in the collection is [key,value]
+     *
+     * @return CollectionInterface
+     */
+    public function pairs()
+    {
+        return collect(array_map(
+            function ($key, $val) {
+                return [$key, $val];
+            },
+            array_keys($this->data),
+            array_values($this->data)
+        ));
+    }
+
+    /**
+     * Get duplicate values.
+     *
+     * Returns a collection of arrays where the key is the duplicate value
+     * and the value is an array of keys from the original collection.
+     *
+     * @return CollectionInterface A new collection with duplicate values.
+     */
+    public function duplicates()
+    {
+        $dups = [];
+        $this->walk(function ($val, $key) use (&$dups) {
+            $dups[$val][] = $key;
+        });
+
+        return collect($dups)->filter(function ($val) {
+            return count($val) > 1;
+        });
+    }
+
     // END Iterator methods
 
     /**
-     * Set collection data.
+     * Counts how many times each value occurs in a collection.
      *
-     * Sets the collection data.
+     * Returns a new collection with values as keys and how many times that
+     * value appears in the collection. Works best with scalar values but will
+     * attempt to work on collections of objects as well.
      *
-     * @param array $data The data to wrap
+     * @return CollectionInterface
      *
-     * @return $this
+     * @todo Right now, collections of arrays or objects are supported via the
+     * __toString() or spl_object_hash()
+     * @todo NumericCollection::counts() does the same thing...
      */
-    protected function setData($data)
+    public function frequency()
     {
-        if (is_null($data)) {
-            $data = [];
+        $frequency = [];
+        foreach ($this as $key => $val) {
+            if (!is_scalar($val)) {
+                if (!is_object($val)) {
+                    $val = new ArrayIterator($val);
+                }
+
+                if (method_exists($val, '__toString')) {
+                    $val = (string) $val;
+                } else {
+                    $val = spl_object_hash($val);
+                }
+            }
+            if (!isset($frequency[$val])) {
+                $frequency[$val] = 0;
+            }
+            $frequency[$val]++;
         }
-        $this->assertCorrectInputDataType($data);
-        $data = $this->prepareData($data);
-        foreach ($data as $index => $value) {
-            $this->set($index, $value);
+
+        return collect($frequency);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function add($index, $value)
+    {
+        if (!$this->has($index)) {
+            return $this->set($index, $value);
         }
-        reset($this->data);
+        return $this;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function get($index, $default = null)
+    {
+        try {
+            return $this->retrieve($index);
+        } catch (OutOfBoundsException $e) {
+            return $default;
+        }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function retrieve($index)
+    {
+        if (!$this->has($index)) {
+            throw new OutOfBoundsException(__CLASS__ . ' could not retrieve value at index ' . $index);
+        }
+        return $this->data[$index];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function take($index)
+    {
+        try {
+            $item = $this->retrieve($index);
+            $this->data = $this->except([$index])->toArray();
+        } catch (OutOfBoundsException $e) {
+            // do nothing...
+            $item = null;
+        }
+        return $item;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function prepend($item)
+    {
+        array_unshift($this->data, $item);
 
         return $this;
     }
 
     /**
-     * Assert input data is of the correct structure.
-     *
-     * @param mixed $data Data to check
-     *
-     * @throws InvalidArgumentException If invalid data structure
+     * @inheritDoc
      */
-    protected function assertCorrectInputDataType($data)
+    public function append($item)
     {
-        // @todo this is thrown whenever a collection is instantiated with the wrong data type
-        // it is not the right message usually... fix it.
-        if (!$this->isConsistentDataStructure($data)) {
-            throw new InvalidArgumentException(__CLASS__ . ' expected traversable data, got: ' . gettype($data));
-        }
+        array_push($this->data, $item);
+
+        return $this;
     }
 
     /**
-     * Convert input data to an array.
-     *
-     * Convert the input data to an array that can be worked with by a collection.
-     *
-     * @param mixed $data The input data
-     *
-     * @return array
+     * @inheritDoc
      */
-    abstract protected function prepareData($data);
+    public function chunk($size)
+    {
+        $data = [];
+        $group = $iter = 0;
+        foreach ($this as $key => $val) {
+            $data[$group][$key] = $val;
+            if ($iter++ > $size) {
+                $group++;
+                $iter = 0;
+            }
+        }
+        return collect($data);
+    }
 
     /**
-     * Determine whether data is consistent with a given collection type.
-     *
-     * This method is used to determine whether input data is consistent with a
-     * given collection type. For instance, CharCollection requires a string.
-     * NumericCollection requires an array or traversable set of numeric data.
-     * TabularCollection requires a two-dimensional data structure where all the
-     * keys are the same in every row.
-     *
-     * @param mixed $data Data structure to check for consistency
-     *
-     * @return bool
+     * @inheritDoc
      */
-    abstract protected function isConsistentDataStructure($data);
+    public function combine($values)
+    {
+        if (!is_traversable($values)) {
+            throw new InvalidArgumentException(sprintf(
+                'Expecting traversable data for %s but got %s.',
+                __METHOD__,
+                typeof($values)
+            ));
+        }
+        return collect(
+            array_combine(
+                $this->keys()->toArray(),
+                collect($values)->values()->toArray()
+            )
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function diff($data)
+    {
+        return collect(
+            array_diff(
+                $this->toArray(),
+                collect($data)->toArray()
+            )
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function diffKeys($data)
+    {
+        return collect(
+            array_diff_key(
+                $this->toArray(),
+                collect($data)->toArray()
+            )
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function every($nth, $offset = null)
+    {
+        return $this->slice($offset)->filter(function($val, $key, $iter) use ($nth) {
+            return $iter % $nth == 0;
+        });
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function except($indexes)
+    {
+        return $this->diffKeys(collect($indexes)->flip());
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function flip()
+    {
+        return collect(array_flip($this->data));
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function intersect($data)
+    {
+        return collect(
+            array_intersect(
+                $this->toArray(),
+                collect($data)->toArray()
+            )
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function intersectKeys($data)
+    {
+        return collect(
+            array_intersect_key(
+                $this->toArray(),
+                collect($data)->toArray()
+            )
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isEmpty(callable $callback = null)
+    {
+        if (!is_null($callback)) {
+            return $this->all($callback);
+        }
+        return empty($this->data);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function only($indices)
+    {
+        return $this->intersectKeys(collect($indices)->flip()->toArray());
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function pipe(callable $callback)
+    {
+        return $callback($this);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function random($num)
+    {
+        return $this->shuffle()->slice(0, $num);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function indicesOf($value)
+    {
+        return $this->filter(function($val) use ($value) {
+            return $val == $value;
+        })->map(function($val, $key) {
+            return $key;
+        });
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function shuffle()
+    {
+        return collect(shuffle($data = $this->data));
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function slice($offset, $length = null)
+    {
+        return collect(array_slice($this->data, $offset, $length, true));
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function splice($offset, $length = null)
+    {
+        return $this->intersectKeys($this->slice($offset, $length)->toArray());
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function split($num)
+    {
+        $data = [];
+        $group = $iter = 0;
+        $size = (int) ($this->count() / $num);
+        foreach ($this as $key => $val) {
+            $data[$group][$key] = $val;
+            if ($iter++ > $size) {
+                $group++;
+                $iter = 0;
+            }
+        }
+        return collect($data);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function transform(callable $callback)
+    {
+        $this->data = $this->map($callback)->toArray();
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function union($data)
+    {
+        // @todo Need a merge that doesn't change this collection
+        return collect(
+            array_merge(
+                collect($data)->toArray(),
+                $this->toArray()
+            )
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function zip(...$data)
+    {
+        return collect(
+            array_map(
+                $this->toArray(),
+                ...$data
+            )
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function foldRight(callable $callback, $initial = null)
+    {
+        $iter = 0;
+        $carry = $initial;
+        foreach ($this as $key => $val) {
+            $carry = $callback($val, $carry, $key, $iter++);
+        }
+        return $carry;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function foldLeft(callable $callback, $initial = null)
+    {
+        return $this->reverse()->foldRight($callback, $initial);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function all(callable $callback = null)
+    {
+        if (is_null($callback)) {
+            $callback = function($val) {
+                return !((bool) $val);
+            };
+        }
+        return $this->filter($callback)->isEmpty();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function none(callable $callback = null)
+    {
+        if (is_null($callback)) {
+            $callback = function($val) {
+                return (bool) $val;
+            };
+        }
+        return $this->filter($callback)->isEmpty();
+    }
+
 }
