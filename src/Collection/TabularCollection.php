@@ -1,5 +1,4 @@
 <?php
-
 /*
  * Nozavroni/Collections
  * Just another collections library for PHP5.6+.
@@ -11,7 +10,11 @@
 namespace Noz\Collection;
 
 use BadMethodCallException;
+use Noz\Contracts\CollectionInterface;
 use OutOfBoundsException;
+
+use function
+    Noz\collect;
 
 /**
  * Class TabularCollection.
@@ -72,13 +75,13 @@ class TabularCollection extends MultiCollection
      * @param mixed $column The column index
      * @param bool  $throw  Throw an exception on failure
      *
-     * @return AbstractCollection|false
+     * @return CollectionInterface|false
      */
     public function getColumn($column, $throw = true)
     {
         $values = array_column($this->data, $column);
         if (count($values)) {
-            return static::factory($values);
+            return collect($values);
         }
         if ($throw) {
             throw new OutOfBoundsException(__CLASS__ . ' could not find column: ' . $column);
@@ -110,11 +113,11 @@ class TabularCollection extends MultiCollection
      *
      * @param int $offset The row offset (starts from 0)
      *
-     * @return AbstractCollection|false
+     * @return CollectionInterface|false
      */
     public function getRow($offset)
     {
-        return static::factory($this->getValueAtPosition($offset));
+        return collect($this->getOffset($offset));
     }
 
     /**
@@ -124,10 +127,10 @@ class TabularCollection extends MultiCollection
     {
         $ret = [];
         foreach ($this->data as $key => $row) {
-            $ret[$key] = $callback(static::factory($row));
+            $ret[$key] = $callback(collect($row));
         }
 
-        return static::factory($ret);
+        return collect($ret);
     }
 
     /**
@@ -136,7 +139,7 @@ class TabularCollection extends MultiCollection
     public function walk(callable $callback, $extraContext = null)
     {
         foreach ($this as $offset => $row) {
-            $callback(static::factory($row), $offset, $extraContext);
+            $callback(collect($row), $offset, $extraContext);
         }
 
         return $this;
