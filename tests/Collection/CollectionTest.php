@@ -12,34 +12,21 @@ namespace NozTest\Collection;
 
 use ArrayAccess;
 use Countable;
-use Noz\Collection\MultiCollection;
-use Noz\Collection\NumericCollection;
-use Noz\Collection\TabularCollection;
 use \Iterator;
 use \ArrayIterator;
-use Noz\Collection\AbstractCollection;
 use Noz\Collection\Collection;
-//use Noz\Contract\Collectable;
-use function Noz\is_traversable;
+use Noz\Contracts\CollectionInterface;
+
+use function
+    Noz\is_traversable,
+    Noz\collect;
 
 class CollectionTest extends AbstractCollectionTest
 {
-//    public function testCollectFactoryReturnsCollectable()
-//    {
-//        $coll = Collection::factory();
-//        $this->assertInstanceOf(Collectable::class, $coll);
-//    }
-
     public function testCollectFactoryReturnsBasicCollectionByDefault()
     {
         $coll = Collection::factory();
         $this->assertInstanceOf(Collection::class, $coll);
-    }
-
-    // @todo write this test
-    public function testCollectFactoryThrowsExceptionOnInvalidForceClassType()
-    {
-
     }
 
     public function testCollectionFactoryPassesInputToCollection()
@@ -47,25 +34,6 @@ class CollectionTest extends AbstractCollectionTest
         $in = ['foo' => 'bar', 'baz' => 'bin'];
         $coll = Collection::factory($in);
         $this->assertEquals($in, $coll->toArray());
-    }
-
-    public function testCollectionFactoryReturnsNumericCollectionForNumericDataset()
-    {
-        $in = [1,2,3,4,5];
-        $numeric = Collection::factory($in);
-        $this->assertInstanceOf(NumericCollection::class, $numeric);
-        $in = [1,2.5,3,4,5];
-        $numeric = Collection::factory($in);
-        $this->assertInstanceOf(NumericCollection::class, $numeric);
-        $in = [0,0,0,0,'0'];
-        $numeric = Collection::factory($in);
-        $this->assertInstanceOf(NumericCollection::class, $numeric);
-        $in = ['0','123',10];
-        $numeric = Collection::factory($in);
-        $this->assertInstanceOf(NumericCollection::class, $numeric);
-        $in = [1,];
-        $numeric = Collection::factory($in);
-        $this->assertInstanceOf(NumericCollection::class, $numeric);
     }
 
     public function testCollectionFactoryReturnsCollectionForEverythingElse()
@@ -149,7 +117,7 @@ class CollectionTest extends AbstractCollectionTest
         $in = ['foo' => 'bar', 'baz' => 'bin'];
         $coll = Collection::factory($in);
         $this->assertNull($coll->get('poo'));
-        $this->assertInstanceOf(AbstractCollection::class, $coll->set('poo', 'woo!'));
+        $this->assertInstanceOf(CollectionInterface::class, $coll->set('poo', 'woo!'));
         $this->assertEquals('woo!', $coll->get('poo'));
     }
 
@@ -158,7 +126,7 @@ class CollectionTest extends AbstractCollectionTest
         $in = ['foo' => 'bar', 'baz' => 'bin'];
         $coll = Collection::factory($in);
         $this->assertNotNull($coll->get('foo'));
-        $this->assertInstanceOf(AbstractCollection::class, $coll->delete('foo'));
+        $this->assertInstanceOf(Collection::class, $coll->delete('foo'));
         $this->assertNull($coll->get('foo'));
     }
 
@@ -350,7 +318,7 @@ class CollectionTest extends AbstractCollectionTest
         $coll2 = $coll->map(function($val){
             return $val + 1;
         });
-        $this->assertInstanceOf(AbstractCollection::class, $coll2);
+        $this->assertInstanceOf(CollectionInterface::class, $coll2);
         $this->assertEquals([1,2,3,4,5,6,7,8,9,10], $coll2->toArray());
     }
 
@@ -566,5 +534,102 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertEquals(1, $coll->indexOf('bar'));
         $this->assertEquals('boo', $coll->indexOf('woo'));
         $this->assertNull($coll->indexOf('notinarray', true));
+    }
+
+    // BEGIN Numeric data method tests
+
+    public function testIncrementDecrementAddsSubtractsOneFromGivenKey()
+    {
+        $coll = collect([10,15,20,25,50,100]);
+        $zero = 0;
+        $coll->increment($zero);
+        $this->assertEquals(11, $coll->get($zero));
+        $coll->increment($zero);
+        $coll->increment($zero);
+        $coll->increment($zero);
+        $coll->increment($zero);
+        $this->assertEquals(15, $coll->get($zero));
+        $coll->decrement($zero);
+        $this->assertEquals(14, $coll->get($zero));
+        $coll->decrement($zero);
+        $coll->decrement($zero);
+        $this->assertEquals(12, $coll->get($zero));
+    }
+
+    public function testIncrementDecrementWithIntervalAddsSubtractsIntervalFromGivenKey()
+    {
+        $coll = collect([10,15,20,25,50,100]);
+        $zero = 0;
+        $coll->increment($zero, 5);
+        $this->assertEquals(15, $coll->get($zero));
+        $coll->increment($zero, 100);
+        $this->assertEquals(115, $coll->get($zero));
+        $coll->decrement($zero, 2);
+        $this->assertEquals(113, $coll->get($zero));
+        $coll->decrement($zero, 1000);
+        $coll->decrement($zero);
+        $this->assertEquals(-888, $coll->get($zero));
+    }
+
+
+    public function testSumMethodSumsCollection()
+    {
+        $coll = collect([10,20,30,100,60,80]);
+        $this->assertEquals(300, $coll->sum());
+    }
+
+    public function testAverageMethodAveragesCollection()
+    {
+        $coll = collect([10,20,30,100,60,80]);
+        $this->assertEquals(50, $coll->average());
+    }
+
+    public function testModeMethodReturnsCollectionMode()
+    {
+        $coll = collect([10,20,30,100,60,80,10,20,100,10,50,40,10,20,50,60,80]);
+        $this->assertEquals(10, $coll->mode());
+    }
+
+    public function testMedianMethodReturnsCollectionMedian()
+    {
+        $coll = collect([1,10,20,30,100,60,80,10,20,100,10,50,40,10,20,50,60,80]);
+        $this->assertEquals(35, $coll->median());
+
+        $coll = collect([1,20,300,4000]);
+        $this->assertEquals(160, $coll->median());
+
+        // $coll = collect(['one','two','three','four','five']);
+        // $this->assertEquals('four', $coll->median());
+
+        // @todo Maybe for strings median should work with string length?
+        // $coll = collect(['hello','world','this','will','do','weird','stuff','yes','it','will']);
+        // $this->assertEquals(0, $coll->median());
+
+        $coll = collect([1]);
+        $this->assertEquals(1, $coll->median());
+
+        $coll = collect([1,2]);
+        $this->assertEquals(1.5, $coll->median());
+    }
+
+    public function testCountsReturnsCollectionOfCounts()
+    {
+        $data = [1,1,1,2,0,2,2,3,3,3,3,3,3,3,4,5,6,6,7,8,9,0];
+        $coll = collect($data);
+        $this->assertInstanceOf(Collection::class, $coll);
+        $counts = $coll->counts();
+        $this->assertInstanceOf(Collection::class, $counts);
+        $this->assertEquals([
+            1 => 3,
+            2 => 3,
+            3 => 7,
+            4 => 1,
+            5 => 1,
+            6 => 2,
+            7 => 1,
+            8 => 1,
+            9 => 1,
+            0 => 2
+        ], $counts->toArray());
     }
 }

@@ -20,10 +20,6 @@ use function
     Noz\to_array,
     Noz\typeof;
 use Noz\Collection\Collection;
-use Noz\Collection\MultiCollection;
-use Noz\Collection\NumericCollection;
-use Noz\Collection\ObjectCollection;
-use Noz\Collection\TabularCollection;
 use Noz\Contracts\CollectionInterface;
 use SplObjectStorage;
 use stdClass;
@@ -76,7 +72,6 @@ class FunctionsTest extends UnitTestCase
         $this->assertInstanceOf(Collection::class, collect([]), 'Ensure Noz\\collect() returns CollectionInterface when passed an empty array.');
         $this->assertInstanceOf(Collection::class, collect(['foo' => 'bar', 'baz' => 'bin']), 'Ensure Noz\\collect() returns CollectionInterface when passed an array.');
         $this->assertInstanceOf(Collection::class, collect(new ArrayIterator(['foo' => 'bar', 'baz' => 'bin'])), 'Ensure Noz\\collect() returns CollectionInterface when passed an array iterator with an empty array.');
-        $this->assertInstanceOf(NumericCollection::class, collect([1,2,3,4.5]), 'Ensure Noz\\collect() returns NumericCollection when passed an array of digits.');
     }
 
     public function testInvokeInvokesAnonymousFunction()

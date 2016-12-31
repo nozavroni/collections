@@ -11,8 +11,6 @@
 namespace NozTest\Collection;
 
 use Noz\Collection\Collection;
-use Noz\Collection\MultiCollection;
-use Noz\Collection\TabularCollection;
 use NozTest\UnitTestCase;
 use Faker;
 
@@ -23,6 +21,9 @@ class AbstractCollectionTest extends UnitTestCase
      */
     const MY_BDAY = 19860423;
 
+    const MultiCollection = 'multi';
+    const TabularCollection = 'table';
+
     protected $testdata = [];
 
     public function setUp()
@@ -30,7 +31,7 @@ class AbstractCollectionTest extends UnitTestCase
         parent::setUp();
         $faker = Faker\Factory::create();
         $faker->seed(static::MY_BDAY);
-        $this->testdata[MultiCollection::class] = [
+        $this->testdata['multi'] = [
             'names' => [],
             'addresses' => [],
             'cities' => [],
@@ -40,22 +41,22 @@ class AbstractCollectionTest extends UnitTestCase
             'userAgent' => []
         ];
         for ($i = 0; $i < 10; $i++) {
-            $this->testdata[MultiCollection::class]['names'][] = $faker->name;
-            $this->testdata[MultiCollection::class]['addresses'][] = $faker->streetAddress;
-            $this->testdata[MultiCollection::class]['cities'][] = $faker->city;
-            $this->testdata[MultiCollection::class]['dates'][] = $faker->date;
-            $this->testdata[MultiCollection::class]['numeric'][] = $faker->randomNumber;
-            $this->testdata[MultiCollection::class]['words'][] = $faker->words;
-            $this->testdata[MultiCollection::class]['userAgent'][] = $faker->userAgent;
+            $this->testdata[static::MultiCollection]['names'][] = $faker->name;
+            $this->testdata[static::MultiCollection]['addresses'][] = $faker->streetAddress;
+            $this->testdata[static::MultiCollection]['cities'][] = $faker->city;
+            $this->testdata[static::MultiCollection]['dates'][] = $faker->date;
+            $this->testdata[static::MultiCollection]['numeric'][] = $faker->randomNumber;
+            $this->testdata[static::MultiCollection]['words'][] = $faker->words;
+            $this->testdata[static::MultiCollection]['userAgent'][] = $faker->userAgent;
         }
-        $this->testdata[TabularCollection::class] = [
+        $this->testdata[static::TabularCollection] = [
             'user' => [],
             'profile' => []
         ];
         for($t = 1; $t <= 5; $t++) {
             $created = $faker->dateTimeThisYear->format('YmdHis');
             $profile_id = $t + 125;
-            $this->testdata[TabularCollection::class]['user'][] = [
+            $this->testdata[static::TabularCollection]['user'][] = [
                 'id' => $t,
                 'profile_id' => $profile_id,
                 'email' => $faker->email,
@@ -65,7 +66,7 @@ class AbstractCollectionTest extends UnitTestCase
                 'created' => $created,
                 'modified' => $created
             ];
-            $this->testdata[TabularCollection::class]['profile'][] = [
+            $this->testdata[static::TabularCollection]['profile'][] = [
                 'id' => $profile_id,
                 'address' => $faker->streetAddress,
                 'city' => $faker->city,

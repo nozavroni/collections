@@ -9,6 +9,7 @@
  */
 namespace Noz\Contracts;
 use OutOfBoundsException;
+use Traversable;
 
 /**
  * Interface CollectionInterface.
