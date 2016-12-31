@@ -67,20 +67,20 @@ class ObjectCollectionTest extends AbstractCollectionTest
         $this->assertSame($expected, $objects->get("index"));
     }
 
-    public function testPushMethodPushesObjectOntoTheEnd()
+    public function testAppendMethodAppendsObjectOntoTheEnd()
     {
         $objects = new ObjectCollection([$first = new stdClass("first"), $second = new stdClass("second")]);
-        $objects = $objects->push($expected = new stdClass);
+        $objects = $objects->append($expected = new stdClass);
         $this->assertSame($expected, $objects->pop());
         $this->assertSame($second, $objects->pop());
         $this->assertSame($first, $objects->pop());
         $this->assertNull($objects->pop());
     }
 
-    public function testUnshiftMethodUnshiftsObjectOntoTheBeginning()
+    public function testPrependMethodPrependsObjectOntoTheBeginning()
     {
         $objects = new ObjectCollection([$first = new stdClass("first"), $second = new stdClass("second")]);
-        $objects = $objects->unshift($expected = new stdClass);
+        $objects = $objects->prepend($expected = new stdClass);
         $this->assertSame($expected, $objects->shift());
         $this->assertSame($first, $objects->shift());
         $this->assertSame($second, $objects->shift());
@@ -128,7 +128,7 @@ class ObjectCollectionTest extends AbstractCollectionTest
     public function testConstructorTypeParamRestrictsObjectCollectionTypeWithScalar()
     {
         $objects = new ObjectCollection(null, stdClass::class);
-        $objects->push("hi");
+        $objects->append("hi");
     }
 
     /**
@@ -138,7 +138,7 @@ class ObjectCollectionTest extends AbstractCollectionTest
     public function testConstructorTypeParamRestrictsObjectCollectionType()
     {
         $objects = new ObjectCollection(null, stdClass::class);
-        $objects->push(new ArrayIterator([1,2,3]));
+        $objects->append(new ArrayIterator([1,2,3]));
     }
 
     /**

@@ -89,25 +89,19 @@ class ObjectCollection extends AbstractCollection
     /**
      * {@inheritdoc}
      */
-    public function push(...$items)
+    public function append($item)
     {
-        foreach ($items as $item) {
-            $this->assertValidType($item);
-        }
-
-        return parent::push(...$items);
+        $this->assertValidType($item);
+        return parent::append($item);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function unshift(...$items)
+    public function prepend($item)
     {
-        foreach ($items as $item) {
-            $this->assertValidType($item);
-        }
-
-        return parent::unshift(...$items);
+        $this->assertValidType($item);
+        return parent::prepend($item);
     }
 
     /**
