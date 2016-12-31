@@ -70,7 +70,6 @@ class ObjectCollection extends AbstractCollection
     {
         // @todo I need to remove join and __toString
         // from AbstractCollection and only use it on collections where it makes sense, such as
-        // CharCollection and the like...
         throw new BadMethodCallException(sprintf(
             'Objects of type, "%s" cannot be converted to a string.',
             __CLASS__

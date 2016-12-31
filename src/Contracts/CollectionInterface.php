@@ -476,7 +476,9 @@ interface CollectionInterface
      *
      * Reduces this collection to one value by passing value, key, and the return value from the previous iteration
      * until only one value remains. Iteration begins from the first item in the collection and moves down.
-
+     *
+     * @todo Change order of callback args to $carry, $val, $key, $iter
+     *
      * @param callable $callback The callback function
      * @param          $initial  The initial "carry" value
      *

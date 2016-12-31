@@ -19,7 +19,6 @@ use function
     Noz\is_arrayable,
     Noz\to_array,
     Noz\typeof;
-use Noz\Collection\CharCollection;
 use Noz\Collection\Collection;
 use Noz\Collection\MultiCollection;
 use Noz\Collection\NumericCollection;
@@ -78,7 +77,6 @@ class FunctionsTest extends UnitTestCase
         $this->assertInstanceOf(Collection::class, collect(['foo' => 'bar', 'baz' => 'bin']), 'Ensure Noz\\collect() returns CollectionInterface when passed an array.');
         $this->assertInstanceOf(ObjectCollection::class, collect(new ArrayIterator([])), 'Ensure Noz\\collect() returns CollectionInterface when passed an array iterator with an empty array.');
         $this->assertInstanceOf(Collection::class, collect(new ArrayIterator(['foo' => 'bar', 'baz' => 'bin'])), 'Ensure Noz\\collect() returns CollectionInterface when passed an array iterator with an empty array.');
-        $this->assertInstanceOf(CharCollection::class, collect('foo'), 'Ensure Noz\\collect() returns CharCollection when passed a string.');
         $this->assertInstanceOf(ObjectCollection::class, collect([new stdClass, new stdClass, new stdClass]), 'Ensure Noz\\collect() returns ObjectCollection when passed an array of objects.');
         $this->assertInstanceOf(TabularCollection::class, collect([['id' => 1, 'name' => 'foo'],['id' => 2, 'name' => 'bar'],['id' => 3, 'name' => 'baz']]), 'Ensure Noz\\collect() returns TabularCollection when passed an array of rows/columns.');
         $this->assertInstanceOf(MultiCollection::class, collect(['hi',['id' => 2, 'name' => 'bar'],['id' => 3, 'name' => 'baz']]), 'Ensure Noz\\collect() returns MultiCollection when passed a multiple dimensional array.');
@@ -117,7 +115,6 @@ class FunctionsTest extends UnitTestCase
         $this->assertTrue(is_arrayable(collect()));
         $this->assertTrue(is_arrayable(collect([])));
         $this->assertTrue(is_arrayable(collect([1,2,3])));
-        $this->assertTrue(is_arrayable(collect('foo')));
 
         $this->assertFalse(is_arrayable(null));
         $this->assertFalse(is_arrayable(0));
@@ -139,7 +136,6 @@ class FunctionsTest extends UnitTestCase
         $this->assertInternalType('array', to_array(['foo',1,2]));
         $this->assertInternalType('array', to_array(new ArrayIterator([1,2,3])));
         $this->assertInternalType('array', to_array(collect([1,2,3])));
-        $this->assertInternalType('array', to_array(collect('foo')));
 
         $this->assertEquals([], to_array(null, false));
         $this->assertEquals([1], to_array(1, false));

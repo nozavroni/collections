@@ -12,7 +12,6 @@ namespace NozTest\Collection;
 
 use ArrayAccess;
 use Countable;
-use Noz\Collection\CharCollection;
 use Noz\Collection\MultiCollection;
 use Noz\Collection\NumericCollection;
 use Noz\Collection\TabularCollection;
@@ -174,22 +173,6 @@ class CollectionTest extends AbstractCollectionTest
         $in = [1,];
         $numeric = Collection::factory($in);
         $this->assertInstanceOf(NumericCollection::class, $numeric);
-    }
-
-    public function testCollectionFactoryReturnsCharCollectionForCharacterSet()
-    {
-        $chars = 'a set of characters';
-        $charColl = Collection::factory($chars);
-        $this->assertInstanceOf(CharCollection::class, $charColl);
-        $chars = '000';
-        $charColl = Collection::factory($chars);
-        $this->assertInstanceOf(CharCollection::class, $charColl);
-        $chars = 0;
-        $charColl = Collection::factory($chars);
-        $this->assertInstanceOf(CharCollection::class, $charColl);
-        $chars = 12345;
-        $charColl = Collection::factory($chars);
-        $this->assertInstanceOf(CharCollection::class, $charColl);
     }
 
     public function testCollectionFactoryReturnsCollectionForEverythingElse()

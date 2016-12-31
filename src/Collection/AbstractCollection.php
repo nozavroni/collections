@@ -113,7 +113,7 @@ abstract class AbstractCollection implements
      * Determine whether data is consistent with a given collection type.
      *
      * This method is used to determine whether input data is consistent with a
-     * given collection type. For instance, CharCollection requires a string.
+     * given collection type. For instance,
      * NumericCollection requires an array or traversable set of numeric data.
      * TabularCollection requires a two-dimensional data structure where all the
      * keys are the same in every row.
@@ -160,18 +160,6 @@ abstract class AbstractCollection implements
         }
 
         return $this->set($val, $index);
-    }
-
-    /**
-     * Convert collection to string.
-     *
-     * @return string A string representation of this collection
-     *
-     * @todo Remove this method, it doesn't make sense on most collections. You can add it back to CharCollection.
-     */
-    public function __toString()
-    {
-        return $this->join();
     }
 
     /**
@@ -716,8 +704,6 @@ abstract class AbstractCollection implements
             $class = MultiCollection::class;
         } elseif (static::isAllNumeric($data)) {
             $class = NumericCollection::class;
-        } elseif (static::isCharacterSet($data)) {
-            $class = CharCollection::class;
         } else {
             $class = Collection::class;
         }
