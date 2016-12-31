@@ -16,15 +16,14 @@ use InvalidArgumentException;
 use Iterator;
 use Noz\Contracts\ArrayableInterface;
 use Noz\Contracts\CollectionInterface;
-use Noz\Contracts\The;
 use OutOfBoundsException;
+
+use Noz\Traits\IsArrayable;
 
 use function
     Noz\is_traversable,
     Noz\typeof,
-    Noz\collect,
-    Noz\is_arrayable,
-    Noz\to_array;
+    Noz\collect;
 
 /**
  * Class AbstractCollection.
@@ -48,6 +47,8 @@ abstract class AbstractCollection implements
     Countable,
     Iterator
 {
+    use IsArrayable;
+
     /**
      * @var array The collection of data this object represents
      */
@@ -159,26 +160,6 @@ abstract class AbstractCollection implements
         }
 
         return $this->set($val, $index);
-    }
-
-    /**
-     * Get collection as array.
-     *
-     * @return array This collection as an array
-     *
-     * @todo Move this into an IsArrayable trait
-     */
-    public function toArray()
-    {
-        $arr = [];
-        foreach ($this as $index => $value) {
-            if (is_arrayable($value)) {
-                $value = to_array($value);
-            }
-            $arr[$index] = $value;
-        }
-
-        return $arr;
     }
 
     /**

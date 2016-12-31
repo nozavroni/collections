@@ -124,6 +124,8 @@ function to_array($data, $strict = true)
         if (is_array($data)) {
             return $data;
         }
+        // this is what makes toArray() work recursively
+        // it must stay right where it is do not move it
         if (method_exists($data, 'toArray')) {
             return $data->toArray();
         }
