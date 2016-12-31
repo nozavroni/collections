@@ -261,11 +261,11 @@ class CollectionTest extends AbstractCollectionTest
     /**
      * @expectedException \OutOfBoundsException
      */
-    public function testCollectionGetThrowsExceptionIfIndexNotFoundAndThrowIsTrue()
+    public function testCollectionRetrieveThrowsExceptionIfIndexNotFound()
     {
         $in = ['foo' => 'bar', 'baz' => 'bin'];
         $coll = Collection::factory($in);
-        $coll->get('poo', null, true);
+        $coll->retrieve('poo');
     }
 
     public function testCollectionSetValue()
@@ -457,17 +457,25 @@ class CollectionTest extends AbstractCollectionTest
     public function testPushItemsOntoCollectionAddsToEnd()
     {
         $coll = Collection::factory(['a','b','c','d']);
-        $coll->push('e');
+        $coll->append('e');
         $this->assertEquals(['a','b','c','d','e'], $coll->toArray());
-        $this->assertEquals(['a','b','c','d','e','f','g',['h','i','j'], 'k'], $coll->push('f', 'g', ['h', 'i', 'j'], 'k')->toArray());
+        $coll->append('f')
+             ->append('g')
+             ->append(['h', 'i', 'j'])
+             ->append('k');
+        $this->assertEquals(['a','b','c','d','e','f','g',['h','i','j'], 'k'], $coll->toArray());
     }
 
     public function testUnshiftAddsToBeginningOfCollection()
     {
         $coll = Collection::factory(['a','b','c','d']);
-        $coll->unshift('e');
+        $coll->prepend('e');
         $this->assertEquals(['e','a','b','c','d'], $coll->toArray());
-        $this->assertEquals(['f','g',['h','i','j'],'k','e','a','b','c','d'], $coll->unshift('f', 'g', ['h', 'i', 'j'], 'k')->toArray());
+        $coll->prepend('k')
+             ->prepend(['h', 'i', 'j'])
+             ->prepend('g')
+             ->prepend('f');
+        $this->assertEquals(['f','g',['h','i','j'],'k','e','a','b','c','d'], $coll->toArray());
     }
 
     public function testMapReturnsANewCollectionContainingValuesAfterCallback()
@@ -514,7 +522,7 @@ class CollectionTest extends AbstractCollectionTest
             'luke'   => 'really cool guy',
             'terry'  => 'what a fool'
         ]);
-        $this->assertEquals('really cool guy', $coll->reduce(function($carry, $item) {
+        $this->assertEquals('really cool guy', $coll->foldRight(function($item, $carry, $key, $iter) {
             if (strlen($item) >= strlen($carry)) {
                 return $item;
             }
@@ -667,86 +675,12 @@ class CollectionTest extends AbstractCollectionTest
             10 => 'ten',
             'fifth' => 'this is the fifth'
         ]);
-        $this->assertTrue($coll->hasPosition(0));
-        $this->assertTrue($coll->hasPosition(1));
-        $this->assertTrue($coll->hasPosition(2));
-        $this->assertTrue($coll->hasPosition(3));
-        $this->assertTrue($coll->hasPosition(4));
-        $this->assertFalse($coll->hasPosition(5));
-    }
-
-    public function testEachWithAlwaysFalseCallbackGivesEmptyIterator()
-    {
-        $coll = new Collection($this->testdata[Collection::class]);
-        $callback = function ($val, $key) {
-            return false;
-        };
-        $this->assertInstanceOf(AbstractCollection::class, $coll->each($callback));
-        $this->assertCount(0, $coll->each($callback));
-        $this->assertEquals([
-        ], $coll->each($callback)->toArray());
-    }
-
-    public function testEachIteratesWithCallbackAsFilter()
-    {
-        $coll = new Collection($this->testdata[Collection::class]);
-        $callback = function ($val, $key) {
-            return strlen($val) >= 5;
-        };
-        $this->assertInstanceOf(AbstractCollection::class, $coll->each($callback));
-        $this->assertCount(7, $coll->each($callback));
-        $this->assertEquals([
-            2 => 'voluptatem',
-            4 => 'quisquam',
-            5 => 'voluptatibus',
-            7 => 'veniam',
-            8 => 'omnis',
-            10 => 'cupiditate',
-            13 => 'numquam'
-        ], $coll->each($callback)->toArray());
-    }
-
-    public function testEachIteratesWithCallbackAsFilterForKey()
-    {
-        $coll = new Collection($this->testdata[Collection::class]);
-        $callback = function ($val, $key) {
-            return $key %2 == 0;
-        };
-        $this->assertInstanceOf(AbstractCollection::class, $coll->each($callback));
-        $this->assertCount(8, $coll->each($callback));
-        $this->assertEquals([
-            0 => 'et',
-            2 => 'voluptatem',
-            4 => 'quisquam',
-            6 => 'modi',
-            8 => 'omnis',
-            10 => 'cupiditate',
-            12 => 'ipsa',
-            14 => 'est'
-        ], $coll->each($callback)->toArray());
-    }
-
-    public function testEachIsAutomaticallyBoundToCollection()
-    {
-        $coll = new Collection($this->testdata[Collection::class]);
-        $callback = function ($val, $key) use ($coll) {
-            return ($this === $coll);
-        };
-        $this->assertInstanceOf(AbstractCollection::class, $coll->each($callback));
-        $this->assertCount(15, $coll->each($callback));
-    }
-
-    public function testEachCanBeBoundToArbitraryObject()
-    {
-        $coll1 = new Collection([1,2,3]);
-        $coll2 = new Collection([4,5,6]);
-        $coll3 = new Collection([7,8,9]);
-        $callback = function ($val, $key) {
-            return ($this->contains(4));
-        };
-        $this->assertInstanceOf(AbstractCollection::class, $coll1->each($callback));
-        $this->assertCount(3, $coll1->each($callback, $coll2));
-        $this->assertCount(0, $coll1->each($callback, $coll3));
+        $this->assertTrue($coll->hasOffset(0));
+        $this->assertTrue($coll->hasOffset(1));
+        $this->assertTrue($coll->hasOffset(2));
+        $this->assertTrue($coll->hasOffset(3));
+        $this->assertTrue($coll->hasOffset(4));
+        $this->assertFalse($coll->hasOffset(5));
     }
 
     public function testIndexOfReturnsIndexForGivenValue()

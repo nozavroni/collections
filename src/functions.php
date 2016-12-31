@@ -124,14 +124,14 @@ function to_array($data, $strict = true)
         if (is_array($data)) {
             return $data;
         }
+        if (method_exists($data, 'toArray')) {
+            return $data->toArray();
+        }
         if ($data instanceof Iterator) {
             return iterator_to_array($data);
         }
         if ($data instanceof Traversable) {
             return traversable_to_array($data);
-        }
-        if (method_exists($data, 'toArray')) {
-            return $data->toArray();
         }
     }
     if ($strict) {

@@ -19,10 +19,12 @@ use Noz\Contracts\CollectionInterface;
 use Noz\Contracts\The;
 use OutOfBoundsException;
 
-use function Noz\is_traversable,
-             Noz\typeof,
-             Noz\collect,
-             Noz\is_arrayable;
+use function
+    Noz\is_traversable,
+    Noz\typeof,
+    Noz\collect,
+    Noz\is_arrayable,
+    Noz\to_array;
 
 /**
  * Class AbstractCollection.
@@ -163,13 +165,15 @@ abstract class AbstractCollection implements
      * Get collection as array.
      *
      * @return array This collection as an array
+     *
+     * @todo Move this into an IsArrayable trait
      */
     public function toArray()
     {
         $arr = [];
         foreach ($this as $index => $value) {
             if (is_arrayable($value)) {
-                $value = $value->toArray();
+                $value = to_array($value);
             }
             $arr[$index] = $value;
         }
