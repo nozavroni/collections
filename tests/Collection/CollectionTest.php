@@ -49,113 +49,6 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertEquals($in, $coll->toArray());
     }
 
-    public function testCollectionFactoryReturnsTabularCollectionForTabularDataset()
-    {
-        $in = [
-            [
-                'foo' => 'far',
-                'woo' => 'war',
-                'too' => 'tar',
-                'coo' => 'car',
-                'roo' => 'rar'
-            ],
-            [
-                'foo' => 'yay',
-                'woo' => 'bay',
-                'too' => 'day',
-                'coo' => 'fay',
-                'roo' => 'stay'
-            ],
-            [
-                'foo' => 'poo',
-                'woo' => 'doo',
-                'too' => 'soo',
-                'coo' => 'woo',
-                'roo' => 'coo'
-            ],
-            [
-                'foo' => '---',
-                'woo' => '...',
-                'too' => '===',
-                'coo' => '~~~',
-                'roo' => ',,,'
-            ]
-        ];
-        $table = Collection::factory($in);
-        $this->assertInstanceOf(TabularCollection::class, $table);
-    }
-
-    public function testCollectionFactoryReturnsMultiCollectionForMultiDimensionalDataset()
-    {
-        $in = [
-            [
-                'foo' => 'far',
-                'woo' => 'war',
-                'too' => 'tar',
-                'coo' => 'car',
-                'roo' => 'rar'
-            ],
-            [
-                'foo' => 'yay',
-                'woo' => 'bay',
-                'too' => 'day',
-                'coo' => 'fay',
-                'roo' => 'stay'
-            ],
-            [
-                'foo' => 'poo',
-                'woo' => 'doo',
-                'too' => 'soo',
-                'coo' => 'woo',
-            ],
-            [
-                'foo' => '---',
-                'woo' => '...',
-                'too' => '===',
-                'coo' => '~~~',
-                'roo' => ',,,'
-            ]
-        ];
-        $multi = Collection::factory($in);
-        $this->assertInstanceOf(MultiCollection::class, $multi);
-        $in = [
-            [
-                'foo' => 'far',
-                'woo' => 'war',
-                'too' => 'tar',
-                'coo' => 'car',
-                'roo' => 'rar'
-            ],
-            [1,2,3,4,5],
-            'foobar',
-            [
-                'foo' => 'yay',
-                'woo' => 'bay',
-            ],
-            [
-                'foo' => '---',
-                'woo' => '...',
-                'too' => '===',
-                'coo' => '~~~',
-                'roo' => ',,,'
-            ]
-        ];
-        $multi = Collection::factory($in);
-        $this->assertInstanceOf(MultiCollection::class, $multi);
-        $in = [
-            [
-                'foo' => 'far',
-                'woo' => 'war',
-                'too' => 'tar',
-                'coo' => 'car',
-                'roo' => 'rar'
-            ],
-            1,2,3,4,5
-        ];
-        $multi = Collection::factory($in);
-        $this->assertInstanceOf(MultiCollection::class, $multi);
-    }
-
     public function testCollectionFactoryReturnsNumericCollectionForNumericDataset()
     {
         $in = [1,2,3,4,5];
@@ -324,16 +217,6 @@ class CollectionTest extends AbstractCollectionTest
             'baz' => 'bone',
             'boo' => 'hoo'
         ], $coll->merge($mergeIn)->toArray());
-    }
-
-    /**
-     * @expectedException \InvalidArgumentException
-     */
-    public function testCollectionMergeThrowsExceptionOnInvalidDataType ()
-    {
-        $in = ['foo' => 'bar', 'baz' => 'bin'];
-        $coll = Collection::factory($in);
-        $coll->merge('boo');
     }
 
     public function testCollectionContainsReturnsTrueIfRequestedValueInCollection()

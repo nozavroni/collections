@@ -41,7 +41,7 @@ class NumericCollection extends AbstractCollection
      */
     public function increment($key, $interval = 1)
     {
-        $val = $this->get($key, null, true);
+        $val = $this->retrieve($key);
         for ($i = 0; $i < $interval; $i++) {
             $val++;
         }
@@ -67,7 +67,7 @@ class NumericCollection extends AbstractCollection
      */
     public function decrement($key, $interval = 1)
     {
-        $val = $this->get($key, null, true);
+        $val = $this->retrieve($key);
         for ($i = 0; $i < $interval; $i++) {
             $val--;
         }
@@ -167,25 +167,8 @@ class NumericCollection extends AbstractCollection
         return new self(array_count_values($this->toArray()));
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function prepareData($data)
-    {
-        return $data;
-    }
-
     protected function isConsistentDataStructure($data)
     {
-        if (!is_traversable($data)) {
-            return false;
-        }
-        foreach ($data as $val) {
-            if (!is_numeric($val)) {
-                return false;
-            }
-        }
-
-        return true;
+        return static::isNumeric($data);
     }
 }

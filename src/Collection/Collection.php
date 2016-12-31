@@ -22,14 +22,6 @@ use function Noz\is_traversable;
 class Collection extends AbstractCollection
 {
     /**
-     * {@inheritdoc}
-     */
-    protected function prepareData($data)
-    {
-        return $data;
-    }
-
-    /**
      * Is correct input data type?
      *
      * @param mixed $data The data to assert correct type of
@@ -38,16 +30,6 @@ class Collection extends AbstractCollection
      */
     protected function isConsistentDataStructure($data)
     {
-        // this collection may only contain scalar or null values
-        if (!is_traversable($data)) {
-            return false;
-        }
-        foreach ($data as $key => $val) {
-            if (is_traversable($val)) {
-                return false;
-            }
-        }
-
-        return true;
+        return is_traversable($data);
     }
 }

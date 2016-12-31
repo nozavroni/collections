@@ -24,6 +24,7 @@ use function
     Noz\is_traversable,
     Noz\typeof,
     Noz\collect;
+use Traversable;
 
 /**
  * Class AbstractCollection.
@@ -74,7 +75,7 @@ abstract class AbstractCollection implements
      *
      * Sets the collection data.
      *
-     * @param array $data The data to wrap
+     * @param array|Traversable $data The data to wrap
      *
      * @return $this
      */
@@ -84,7 +85,6 @@ abstract class AbstractCollection implements
             $data = [];
         }
         $this->assertCorrectInputDataType($data);
-        $data = $this->prepareData($data);
         foreach ($data as $index => $value) {
             $this->set($index, $value);
         }
@@ -102,38 +102,11 @@ abstract class AbstractCollection implements
      */
     protected function assertCorrectInputDataType($data)
     {
-        // @todo this is thrown whenever a collection is instantiated with the wrong data type
-        // it is not the right message usually... fix it.
+        // @todo this is not the right message usually... fix it.
         if (!$this->isConsistentDataStructure($data)) {
             throw new InvalidArgumentException(__CLASS__ . ' expected traversable data, got: ' . gettype($data));
         }
     }
-
-    /**
-     * Determine whether data is consistent with a given collection type.
-     *
-     * This method is used to determine whether input data is consistent with a
-     * given collection type. For instance,
-     * NumericCollection requires an array or traversable set of numeric data.
-     * TabularCollection requires a two-dimensional data structure where all the
-     * keys are the same in every row.
-     *
-     * @param mixed $data Data structure to check for consistency
-     *
-     * @return bool
-     */
-    abstract protected function isConsistentDataStructure($data);
-
-    /**
-     * Convert input data to an array.
-     *
-     * Convert the input data to an array that can be worked with by a collection.
-     *
-     * @param mixed $data The input data
-     *
-     * @return array
-     */
-    abstract protected function prepareData($data);
 
     /**
      * Invoke object.
@@ -163,7 +136,7 @@ abstract class AbstractCollection implements
     }
 
     /**
-     * Whether a offset exists.
+     * Whether an offset exists.
      *
      * @param mixed $offset An offset to check for.
      *
@@ -216,13 +189,7 @@ abstract class AbstractCollection implements
     }
 
     /**
-     * Get count.
-     * If a callback is supplied, this method will return the number of items that cause the callback to return true.
-     * Otherwise, all items in the collection will be counted.
-     *
-     * @param callable $callback The (optional) callback function
-     *
-     * @return int
+     * @inheritDoc
      */
     public function count(callable $callback = null)
     {
@@ -535,16 +502,16 @@ abstract class AbstractCollection implements
 
     /**
      * Apply a callback to each item in collection.
-     *
+
      * Applies a callback to each item in collection. The callback should return
      * false to filter any item from the collection.
-     *
+
      * @param callable $callback     The callback function
      * @param null     $extraContext Extra context to pass as third param in callback
-     *
+
      * @return $this
-     *
-     * @see php.net array_walk
+     * @todo Is this method really useful? I don't think it is... Probably should just get rid of it because map() and
+     *       each() can do everything walk() can do and more...
      */
     public function walk(callable $callback, $extraContext = null)
     {
@@ -696,13 +663,7 @@ abstract class AbstractCollection implements
      */
     public static function factory($data = null)
     {
-        if (static::isAllObjects($data)) {
-            $class = ObjectCollection::class;
-        } elseif (static::isTabular($data)) {
-            $class = TabularCollection::class;
-        } elseif (static::isMultiDimensional($data)) {
-            $class = MultiCollection::class;
-        } elseif (static::isAllNumeric($data)) {
+        if (static::isNumeric($data)) {
             $class = NumericCollection::class;
         } else {
             $class = Collection::class;
@@ -712,99 +673,13 @@ abstract class AbstractCollection implements
     }
 
     /**
-     * Is data structure all objects?
-     *
-     * Does the data structure passed in contain only objects?
-     *
-     * @param mixed $data The data structure to check
-     *
-     * @return bool
-     */
-    public static function isAllObjects($data)
-    {
-        if (!is_traversable($data) || empty($data)) {
-            return false;
-        }
-        foreach ($data as $value) {
-            if (!is_object($value)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Is input data tabular?
-     *
-     * Returns true if input data is tabular in nature. This means that it is a
-     * two-dimensional array with the same keys (columns) for each element (row).
-     *
-     * @param mixed $data The data structure to check
-     *
-     * @return bool True if data structure is tabular
-     */
-    public static function isTabular($data)
-    {
-        if (!is_traversable($data) || empty($data)) {
-            return false;
-        }
-        foreach ($data as $row) {
-            if (!is_traversable($row)) {
-                return false;
-            }
-            $columns = array_keys($row);
-            if (!isset($cmp_columns)) {
-                $cmp_columns = $columns;
-            } else {
-                if ($cmp_columns != $columns) {
-                    return false;
-                }
-            }
-            // if row contains an array it isn't tabular
-            if (array_reduce($row, function ($carry, $item) {
-                return is_array($item) && $carry;
-            }, true)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Check data for multiple dimensions.
-     *
-     * This method is to determine whether a data structure is multi-dimensional.
-     * That is to say, it is a traversable structure that contains at least one
-     * traversable structure.
-     *
-     * @param mixed $data The input data
-     *
-     * @return bool
-     */
-    public static function isMultiDimensional($data)
-    {
-        if (!is_traversable($data) || empty($data)) {
-            return false;
-        }
-        foreach ($data as $elem) {
-            if (is_traversable($elem)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Determine if structure contains all numeric values.
      *
      * @param mixed $data The input data
      *
      * @return bool
      */
-    public static function isAllNumeric($data)
+    public static function isNumeric($data)
     {
         if (!is_traversable($data) || empty($data)) {
             return false;
@@ -814,25 +689,7 @@ abstract class AbstractCollection implements
                 return false;
             }
         }
-
         return true;
-    }
-
-    /**
-     * Is data a string of characters?
-     *
-     * Just checks to see if input is a string of characters or a string
-     * of digits.
-     *
-     * @param mixed $data Data to check
-     *
-     * @return bool
-     */
-    public static function isCharacterSet($data)
-    {
-        return
-            is_string($data) ||
-            is_numeric($data);
     }
 
     /**
@@ -870,17 +727,17 @@ abstract class AbstractCollection implements
     }
 
     /**
-     * @param int $pos The numerical position
+     * @param int $offset The numerical offset
      *
      * @throws OutOfBoundsException if no pair at position
      *
      * @return array
      */
-    public function getPairAtPosition($pos)
+    public function getOffsetPair($offset)
     {
         $pairs = $this->pairs();
 
-        return $pairs[$this->getKeyAtPosition($pos)];
+        return $pairs[$this->getOffsetKey($offset)];
     }
 
     /**
@@ -1297,7 +1154,7 @@ abstract class AbstractCollection implements
     {
         if (is_null($callback)) {
             $callback = function($val) {
-                return !((bool) $val);
+                return (bool) $val;
             };
         }
         return $this->filter($callback)->isEmpty();
@@ -1316,4 +1173,18 @@ abstract class AbstractCollection implements
         return $this->filter($callback)->isEmpty();
     }
 
+    /**
+     * Determine whether data is consistent with a given collection type.
+     *
+     * This method is used to determine whether input data is consistent with a
+     * given collection type. For instance,
+     * NumericCollection requires an array or traversable set of numeric data.
+     * TabularCollection requires a two-dimensional data structure where all the
+     * keys are the same in every row.
+     *
+     * @param mixed $data Data structure to check for consistency
+     *
+     * @return bool
+     */
+    abstract protected function isConsistentDataStructure($data);
 }

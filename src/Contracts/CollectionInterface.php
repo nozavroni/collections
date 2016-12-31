@@ -637,4 +637,18 @@ interface CollectionInterface
      * @return int|string
      */
     public function getOffsetKey($offset);
+
+    /**
+     * Get count.
+     *
+     * If a callback is supplied, this method will return the number of items that cause the callback to return true.
+     * Otherwise, all items in the collection will be counted.
+     *
+     * @todo If having the callback param causes collection not to be able to implement Countable,
+     *       just get rid of it. You can do the same thing with filter($callback)->Count()
+     *
+     * @param callable $callback The (optional) callback function
+     * @return int
+     */
+    public function count(callable $callback = null);
 }

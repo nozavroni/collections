@@ -75,11 +75,7 @@ class FunctionsTest extends UnitTestCase
         $this->assertInstanceOf(Collection::class, collect(), 'Ensure Noz\\collect() returns CollectionInterface when passed no params.');
         $this->assertInstanceOf(Collection::class, collect([]), 'Ensure Noz\\collect() returns CollectionInterface when passed an empty array.');
         $this->assertInstanceOf(Collection::class, collect(['foo' => 'bar', 'baz' => 'bin']), 'Ensure Noz\\collect() returns CollectionInterface when passed an array.');
-        $this->assertInstanceOf(ObjectCollection::class, collect(new ArrayIterator([])), 'Ensure Noz\\collect() returns CollectionInterface when passed an array iterator with an empty array.');
         $this->assertInstanceOf(Collection::class, collect(new ArrayIterator(['foo' => 'bar', 'baz' => 'bin'])), 'Ensure Noz\\collect() returns CollectionInterface when passed an array iterator with an empty array.');
-        $this->assertInstanceOf(ObjectCollection::class, collect([new stdClass, new stdClass, new stdClass]), 'Ensure Noz\\collect() returns ObjectCollection when passed an array of objects.');
-        $this->assertInstanceOf(TabularCollection::class, collect([['id' => 1, 'name' => 'foo'],['id' => 2, 'name' => 'bar'],['id' => 3, 'name' => 'baz']]), 'Ensure Noz\\collect() returns TabularCollection when passed an array of rows/columns.');
-        $this->assertInstanceOf(MultiCollection::class, collect(['hi',['id' => 2, 'name' => 'bar'],['id' => 3, 'name' => 'baz']]), 'Ensure Noz\\collect() returns MultiCollection when passed a multiple dimensional array.');
         $this->assertInstanceOf(NumericCollection::class, collect([1,2,3,4.5]), 'Ensure Noz\\collect() returns NumericCollection when passed an array of digits.');
     }
 
