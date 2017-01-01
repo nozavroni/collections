@@ -17,6 +17,7 @@ use Iterator;
 use Noz\Contracts\ArrayableInterface;
 use Noz\Contracts\CollectionInterface;
 use OutOfBoundsException;
+use Traversable;
 
 use Noz\Traits\IsArrayable;
 
@@ -24,7 +25,7 @@ use function
     Noz\is_traversable,
     Noz\typeof,
     Noz\collect;
-use Traversable;
+
 
 /**
  * Class Collection.
@@ -44,7 +45,6 @@ use Traversable;
 class Collection implements
     CollectionInterface,
     ArrayableInterface,
-    ArrayAccess,
     Countable,
     Iterator
 {
@@ -53,7 +53,7 @@ class Collection implements
     /**
      * @var array The collection of data this object represents
      */
-    protected $data = [];
+    private $data = [];
 
     /**
      * @var bool True unless we have advanced past the end of the data array
@@ -65,127 +65,47 @@ class Collection implements
      *
      * @param mixed $data The data to wrap
      */
-    public function __construct($data = [])
-    {
-        $this->setData($data);
-    }
-
-    /**
-     * Set collection data.
-     *
-     * Sets the collection data.
-     *
-     * @param array|Traversable $data The data to wrap
-     *
-     * @return $this
-     */
-    protected function setData($data)
+    public function __construct($data = null)
     {
         if (is_null($data)) {
             $data = [];
         }
-        $this->assertIsTraversable($data);
+        if (!is_traversable($data)) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid input for %s. Expecting traversable data, got "%s".',
+                __METHOD__,
+                typeof($data)
+            ));
+        }
+        $this->setData($data);
+    }
+
+    /**
+     * Set underlying data array.
+     *
+     * Sets the collection data. This method should NEVER be called anywhere other than in __construct().
+     *
+     * @param array|Traversable $data The data to wrap
+     */
+    private function setData($data)
+    {
         foreach ($data as $index => $value) {
-            $this->set($index, $value);
+            $this->data[$index] = $value;
         }
         reset($this->data);
-
-        return $this;
     }
 
     /**
-     * Assert input data is of the correct structure.
+     * Get copy of underlying data array.
      *
-     * @param mixed $data Data to check
+     * Returns a copy of this collection's underlying data array. It returns a copy because collections are supposed to
+     * be immutable. Nothing outside of the constructor should ever have direct access to the actual underlying array.
      *
-     * @throws InvalidArgumentException If invalid data structure
+     * @return array
      */
-    protected function assertIsTraversable($data)
+    protected function getData()
     {
-        // @todo this is not the right message usually... fix it.
-        if (!is_traversable($data)) {
-            throw new InvalidArgumentException(__CLASS__ . ' expected traversable data, got: ' . gettype($data));
-        }
-    }
-
-    /**
-     * Invoke object.
-     *
-     * Magic "invoke" method. Called when object is invoked as if it were a function.
-     *
-     * @param mixed $val   The value (depends on other param value)
-     * @param mixed $index The index (depends on other param value)
-     *
-     * @return array|CollectionInterface (Depends on parameter values)
-     */
-    public function __invoke($val = null, $index = null)
-    {
-        if (is_null($val)) {
-            if (is_null($index)) {
-                return $this->toArray();
-            }
-
-            return $this->delete($index);
-        }
-        if (is_null($index)) {
-            // @todo cast $val to array?
-                return $this->merge($val);
-        }
-
-        return $this->set($val, $index);
-    }
-
-    /**
-     * Whether an offset exists.
-     *
-     * @param mixed $offset An offset to check for.
-     *
-     * @return bool true on success or false on failure.
-     *
-     * @see http://php.net/manual/en/arrayaccess.offsetexists.php
-     */
-    public function offsetExists($offset)
-    {
-        return $this->has($offset);
-    }
-
-    /**
-     * Offset to retrieve.
-     *
-     * @param mixed $offset The offset to retrieve.
-     *
-     * @return mixed Can return all value types.
-     *
-     * @see http://php.net/manual/en/arrayaccess.offsetget.php
-     */
-    public function offsetGet($offset)
-    {
-        return $this->retrieve($offset);
-    }
-
-    /**
-     * Offset to set.
-     *
-     * @param mixed $offset The offset to assign the value to.
-     * @param mixed $value  The value to set.
-     *
-     * @see http://php.net/manual/en/arrayaccess.offsetset.php
-     */
-    public function offsetSet($offset, $value)
-    {
-        $this->set($offset, $value);
-    }
-
-    /**
-     * Offset to unset.
-     *
-     * @param mixed $offset The offset to unset.
-     *
-     * @see http://php.net/manual/en/arrayaccess.offsetunset.php
-     */
-    public function offsetUnset($offset)
-    {
-        $this->delete($offset);
+        return $data = $this->data;
     }
 
     /**
@@ -196,7 +116,7 @@ class Collection implements
         if (!is_null($callback)) {
             return $this->filter($callback)->count();
         }
-        return count($this->data);
+        return count($this->getData());
     }
 
     /**
@@ -277,9 +197,9 @@ class Collection implements
         if (is_null($alg)) {
             $alg = 'natcasesort';
         }
-        $alg($this->data);
+        $alg($this->toArray());
 
-        return collect($this->data);
+        return collect($data);
     }
 
     /**
@@ -291,49 +211,39 @@ class Collection implements
      */
     public function has($index)
     {
-        return array_key_exists($index, $this->data);
+        return array_key_exists($index, $this->getData());
     }
 
     /**
-     * Set a value at a given index.
+     * Set value at given index.
      *
-     * Setter for this collection. Allows setting a value at a given index.
+     * This method simulates setting a value in this collection, but because collections are immutable, it actually
+     * returns a copy of this collection with the value in the new collection set to specified value.
      *
      * @param mixed $index The index to set a value at
      * @param mixed $val   The value to set $index to
      *
-     * @return $this
+     * @return CollectionInterface
      */
     public function set($index, $val)
     {
-        $this->data[$index] = $val;
-
-        return $this;
+        $copy = $this->getData();
+        $copy[$index] = $val;
+        return collect($copy);
     }
 
     /**
-     * Unset a value at a given index.
-     *
      * Unset (delete) value at the given index.
      *
+     * Get copy of collection with given index removed.
+     *
      * @param mixed $index The index to unset
-     * @param bool  $throw True if you want an exception to be thrown if no data found at $index
      *
-     * @throws OutOfBoundsException If $throw is true and $index isn't found
-     *
-     * @return $this
+     * @return CollectionInterface
      */
-    public function delete($index, $throw = false)
+    public function delete($index)
     {
-        if (isset($this->data[$index])) {
-            unset($this->data[$index]);
-        } else {
-            if ($throw) {
-                throw new OutOfBoundsException('No value found at given index: ' . $index);
-            }
-        }
-
-        return $this;
+        return $this->except([$index]);
     }
 
     /**
@@ -371,7 +281,7 @@ class Collection implements
      */
     public function keys()
     {
-        return collect(array_keys($this->data));
+        return collect(array_keys($this->getData()));
     }
 
     /**
@@ -383,28 +293,7 @@ class Collection implements
      */
     public function values()
     {
-        return collect(array_values($this->data));
-    }
-
-    /**
-     * Merge data into collection.
-     *
-     * Merges input data into this collection. Input can be an array or another collection.
-     * Returns a NEW collection object.
-     *
-     * @param Traversable|array $data The data to merge with this collection
-     *
-     * @return CollectionInterface A new collection with $data merged in
-     */
-    public function merge($data)
-    {
-        $this->assertIsTraversable($data);
-        $coll = collect($this->data);
-        foreach ($data as $index => $value) {
-            $coll->set($index, $value);
-        }
-
-        return $coll;
+        return collect(array_values($this->getData()));
     }
 
     /**
@@ -446,27 +335,7 @@ class Collection implements
     }
 
     /**
-     * Pop an element off the end of this collection.
-     *
-     * @return mixed The last item in this collectio n
-     */
-    public function pop()
-    {
-        return array_pop($this->data);
-    }
-
-    /**
-     * Shift an element off the beginning of this collection.
-     *
-     * @return mixed The first item in this collection
-     */
-    public function shift()
-    {
-        return array_shift($this->data);
-    }
-
-    /**
-     * Pad this collection to a certain size.
+     * Pad collection to a certain size.
      *
      * Returns a new collection, padded to the given size, with the given value.
      *
@@ -477,7 +346,7 @@ class Collection implements
      */
     public function pad($size, $with = null)
     {
-        return collect(array_pad($this->data, $size, $with));
+        return collect(array_pad($this->getData(), $size, $with));
     }
 
     /**
@@ -498,26 +367,6 @@ class Collection implements
             $transform[$key] = $callback($val, $key, $iter++);
         }
         return collect($transform);
-    }
-
-    /**
-     * Apply a callback to each item in collection.
-
-     * Applies a callback to each item in collection. The callback should return
-     * false to filter any item from the collection.
-
-     * @param callable $callback     The callback function
-     * @param null     $extraContext Extra context to pass as third param in callback
-
-     * @return $this
-     * @todo Is this method really useful? I don't think it is... Probably should just get rid of it because map() and
-     *       each() can do everything walk() can do and more...
-     */
-    public function walk(callable $callback, $extraContext = null)
-    {
-        array_walk($this->data, $callback, $extraContext);
-
-        return $this;
     }
 
     /**
@@ -635,7 +484,7 @@ class Collection implements
      */
     public function reverse()
     {
-        return collect(array_reverse($this->data, true));
+        return collect(array_reverse($this->getData(), true));
     }
 
     /**
@@ -647,7 +496,7 @@ class Collection implements
      */
     public function unique()
     {
-        return collect(array_unique($this->data));
+        return collect(array_unique($this->getData()));
     }
 
     /**
@@ -669,12 +518,11 @@ class Collection implements
     /**
      * Determine if structure contains all numeric values.
      *
-     * @param mixed $data The input data
-     *
      * @return bool
      */
-    public static function isNumeric($data)
+    public function isNumeric()
     {
+        $data = $this->getData();
         if (!is_traversable($data) || empty($data)) {
             return false;
         }
@@ -747,8 +595,8 @@ class Collection implements
             function ($key, $val) {
                 return [$key, $val];
             },
-            array_keys($this->data),
-            array_values($this->data)
+            array_keys($this->getData()),
+            array_values($this->getData())
         ));
     }
 
@@ -819,11 +667,12 @@ class Collection implements
         if (!$this->has($index)) {
             return $this->set($index, $value);
         }
-        return $this;
+        return collect($this);
     }
 
     /**
      * @inheritdoc
+     * @todo Maybe read would be a better name for this?
      */
     public function get($index, $default = null)
     {
@@ -836,28 +685,14 @@ class Collection implements
 
     /**
      * @inheritdoc
+     * @todo Maybe read would be a better name for this?
      */
     public function retrieve($index)
     {
         if (!$this->has($index)) {
             throw new OutOfBoundsException(__CLASS__ . ' could not retrieve value at index ' . $index);
         }
-        return $this->data[$index];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function take($index)
-    {
-        try {
-            $item = $this->retrieve($index);
-            $this->data = $this->except([$index])->toArray();
-        } catch (OutOfBoundsException $e) {
-            // do nothing...
-            $item = null;
-        }
-        return $item;
+        return $this->getData()[$index];
     }
 
     /**
@@ -865,9 +700,10 @@ class Collection implements
      */
     public function prepend($item)
     {
-        array_unshift($this->data, $item);
+        $data = $this->getData();
+        array_unshift($data, $item);
 
-        return $this;
+        return collect($data);
     }
 
     /**
@@ -875,9 +711,10 @@ class Collection implements
      */
     public function append($item)
     {
-        array_push($this->data, $item);
+        $data = $this->getData();
+        array_push($data, $item);
 
-        return $this;
+        return collect($data);
     }
 
     /**
@@ -966,7 +803,7 @@ class Collection implements
      */
     public function flip()
     {
-        return collect(array_flip($this->data));
+        return collect(array_flip($this->getData()));
     }
 
     /**
@@ -1003,7 +840,7 @@ class Collection implements
         if (!is_null($callback)) {
             return $this->all($callback);
         }
-        return empty($this->data);
+        return empty($this->getData());
     }
 
     /**
@@ -1047,7 +884,7 @@ class Collection implements
      */
     public function shuffle()
     {
-        return collect(shuffle($data = $this->data));
+        return collect(shuffle($this->getData()));
     }
 
     /**
@@ -1055,15 +892,7 @@ class Collection implements
      */
     public function slice($offset, $length = null)
     {
-        return collect(array_slice($this->data, $offset, $length, true));
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function splice($offset, $length = null)
-    {
-        return $this->intersectKeys($this->slice($offset, $length)->toArray());
+        return collect(array_slice($this->getData(), $offset, $length, true));
     }
 
     /**
@@ -1087,22 +916,12 @@ class Collection implements
     /**
      * @inheritDoc
      */
-    public function transform(callable $callback)
-    {
-        $this->data = $this->map($callback)->toArray();
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function union($data)
     {
-        // @todo Need a merge that doesn't change this collection
         return collect(
             array_merge(
-                collect($data)->toArray(),
-                $this->toArray()
+                $this->toArray(),
+                collect($data)->toArray()
             )
         );
     }
@@ -1180,20 +999,16 @@ class Collection implements
      * This method modifies its internal data array rather than returning a new
      * collection.
      *
-     * @param mixed $key      The key of the item you want to increment.
+     * @param mixed $index    The key of the item you want to increment.
      * @param int   $interval The interval that $key should be incremented by
      *
-     * @return $this
+     * @return CollectionInterface
      */
-    public function increment($key, $interval = 1)
+    public function increment($index, $interval = 1)
     {
-        $val = $this->retrieve($key);
-        for ($i = 0; $i < $interval; $i++) {
-            $val++;
-        }
-        $this->set($key, $val);
-
-        return $this;
+        $val = $this->retrieve($index);
+        $val += $interval;
+        return $this->set($index, $val);
     }
 
     /**
@@ -1209,17 +1024,13 @@ class Collection implements
      * @param mixed $key      The key of the item you want to decrement.
      * @param int   $interval The interval that $key should be decremented by
      *
-     * @return $this
+     * @return CollectionInterface
      */
     public function decrement($key, $interval = 1)
     {
-        $val = $this->retrieve($key);
-        for ($i = 0; $i < $interval; $i++) {
-            $val--;
-        }
-        $this->set($key, $val);
-
-        return $this;
+        $val = $this->retrieve($index);
+        $val -= $interval;
+        return $this->set($index, $val);
     }
 
     /**
@@ -1286,7 +1097,7 @@ class Collection implements
      */
     public function max()
     {
-        return max($this->data);
+        return max($this->getData());
     }
 
     /**
@@ -1296,7 +1107,7 @@ class Collection implements
      */
     public function min()
     {
-        return min($this->data);
+        return min($this->getData());
     }
 
     /**

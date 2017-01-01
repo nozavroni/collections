@@ -120,17 +120,6 @@ interface CollectionInterface
     public function values();
 
     /**
-     * Merge traversable data into collection.
-     *
-     * Returns a new collection with input merged into this collection's data.
-     *
-     * @param Traversable $data Traversable data to merge into collection
-     *
-     * @return CollectionInterface
-     */
-    public function merge($data);
-
-    /**
      * Check that collection contains a value.
      *
      * You may optionally pass in a callable to provide your own equality test.
@@ -141,35 +130,6 @@ interface CollectionInterface
      * @return mixed
      */
     public function contains($value, $index = null);
-
-    /**
-     * Take item at index.
-     *
-     * Remove an item from this collection at given index and return it.
-     *
-     * @param int|string $index Take item at this index
-     *
-     * @return mixed
-     */
-    public function take($index);
-
-    /**
-     * Pop item.
-     *
-     * Pop an item off the end of the collection and return it.
-     *
-     * @return mixed
-     */
-    public function pop();
-
-    /**
-     * Shift item.
-     *
-     * Shift an item off the beginning of the collection and return it.
-     *
-     * @return mixed
-     */
-    public function shift();
 
     /**
      * Prepend item to collection.
@@ -369,18 +329,6 @@ interface CollectionInterface
     public function slice($offset, $length = null);
 
     /**
-     * Remove a slice from this collection and return it.
-     *
-     * Behaves exactly the same way as slice(), only this method removes the slice from this collection before returning it.
-     *
-     * @param int      $offset The offset to start slicing from
-     * @param int|null $length The number of items to include
-     *
-     * @return CollectionInterface
-     */
-    public function splice($offset, $length = null);
-
-    /**
      * Split collection into pieces.
      *
      * Splits this collection into specified number of groups.
@@ -390,16 +338,6 @@ interface CollectionInterface
      * @return CollectionInterface
      */
     public function split($num);
-
-    /**
-     * Transform collection using callback.
-     * This method behaves much like map(), only it modifies this collection in place rather than returning a new one.
-     *
-     * @param callable $callback The transform callback
-     *
-     * @return $this
-     */
-    public function transform(callable $callback);
 
     /**
      * Union of collections/array.
@@ -448,18 +386,6 @@ interface CollectionInterface
      * @return CollectionInterface
      */
     public function map(callable $callback);
-
-    /**
-     * Walk through this collection's items.
-     *
-     * Iterates over each item in the collection, passing value, key to a callback function at each iteration.
-     * It is ill-advised to attempt to change items within the collection using this method.
-     *
-     * @param callable $callback The callback function
-     *
-     * @return $this
-     */
-    public function walk(callable $callback);
 
     /**
      * Iterate over each item in collection.

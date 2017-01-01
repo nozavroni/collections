@@ -112,54 +112,54 @@ class CollectionTest extends AbstractCollectionTest
         $coll->retrieve('poo');
     }
 
-    public function testCollectionSetValue()
-    {
-        $in = ['foo' => 'bar', 'baz' => 'bin'];
-        $coll = Collection::factory($in);
-        $this->assertNull($coll->get('poo'));
-        $this->assertInstanceOf(CollectionInterface::class, $coll->set('poo', 'woo!'));
-        $this->assertEquals('woo!', $coll->get('poo'));
-    }
+//    public function testCollectionSetValue()
+//    {
+//        $in = ['foo' => 'bar', 'baz' => 'bin'];
+//        $coll = Collection::factory($in);
+//        $this->assertNull($coll->get('poo'));
+//        $this->assertInstanceOf(CollectionInterface::class, $coll->set('poo', 'woo!'));
+//        $this->assertEquals('woo!', $coll->get('poo'));
+//    }
 
-    public function testCollectionDeleteValue()
-    {
-        $in = ['foo' => 'bar', 'baz' => 'bin'];
-        $coll = Collection::factory($in);
-        $this->assertNotNull($coll->get('foo'));
-        $this->assertInstanceOf(Collection::class, $coll->delete('foo'));
-        $this->assertNull($coll->get('foo'));
-    }
+//    public function testCollectionDeleteValue()
+//    {
+//        $in = ['foo' => 'bar', 'baz' => 'bin'];
+//        $coll = Collection::factory($in);
+//        $this->assertNotNull($coll->get('foo'));
+//        $this->assertInstanceOf(Collection::class, $coll->delete('foo'));
+//        $this->assertNull($coll->get('foo'));
+//    }
 
-    /**
-     * @expectedException \OutOfBoundsException
-     */
-    public function testCollectionDeleteValueThrowsExceptionIfThrowIsTrue ()
-    {
-        $in = ['foo' => 'bar', 'baz' => 'bin'];
-        $coll = Collection::factory($in);
-        $coll->delete('boo', true);
-    }
+//    /**
+//     * @expectedException \OutOfBoundsException
+//     */
+//    public function testCollectionDeleteValueThrowsExceptionIfThrowIsTrue ()
+//    {
+//        $in = ['foo' => 'bar', 'baz' => 'bin'];
+//        $coll = Collection::factory($in);
+//        $coll->delete('boo', true);
+//    }
 
-    public function testCollectionToArrayCallsToArrayRecursively()
-    {
-        $in1 = ['foo' => 'bar', 'baz' => 'bin'];
-        $in2 = ['boo' => 'far', 'biz' => 'ban'];
-        $in3 = ['doo' => 'dar', 'diz' => 'din'];
-        $coll1 = Collection::factory($in1);
-        $coll2 = Collection::factory($in2);
-        $coll2->set('coll1', $coll1);
-        $coll3 = Collection::factory($in3);
-        $coll3->set('coll2', $coll2);
-        $this->assertEquals([
-            'doo' => 'dar', 'diz' => 'din',
-            'coll2' => [
-                'boo' => 'far', 'biz' => 'ban',
-                'coll1' => [
-                    'foo' => 'bar', 'baz' => 'bin'
-                ]
-            ]
-        ], $coll3->toArray());
-    }
+//    public function testCollectionToArrayCallsToArrayRecursively()
+//    {
+//        $in1 = ['foo' => 'bar', 'baz' => 'bin'];
+//        $in2 = ['boo' => 'far', 'biz' => 'ban'];
+//        $in3 = ['doo' => 'dar', 'diz' => 'din'];
+//        $coll1 = Collection::factory($in1);
+//        $coll2 = Collection::factory($in2);
+//        $coll2->set('coll1', $coll1);
+//        $coll3 = Collection::factory($in3);
+//        $coll3->set('coll2', $coll2);
+//        $this->assertEquals([
+//            'doo' => 'dar', 'diz' => 'din',
+//            'coll2' => [
+//                'boo' => 'far', 'biz' => 'ban',
+//                'coll1' => [
+//                    'foo' => 'bar', 'baz' => 'bin'
+//                ]
+//            ]
+//        ], $coll3->toArray());
+//    }
 
     public function testCollectionKeysReturnsCollectionOfKeys()
     {
@@ -175,7 +175,7 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertEquals(['bar','bin'], $coll->values()->toArray());
     }
 
-    public function testCollectionMergeMergesDataIntoCollection()
+    public function testCollectionUnionMergesDataWithCollection()
     {
         $in = ['foo' => 'bar', 'baz' => 'bin'];
         $coll = Collection::factory($in);
@@ -184,7 +184,7 @@ class CollectionTest extends AbstractCollectionTest
             'foo' => 'bar',
             'baz' => 'bone',
             'boo' => 'hoo'
-        ], $coll->merge($mergeIn)->toArray());
+        ], $coll->union($mergeIn)->toArray());
     }
 
     public function testCollectionContainsReturnsTrueIfRequestedValueInCollection()
@@ -270,47 +270,29 @@ class CollectionTest extends AbstractCollectionTest
         }, ['goo','boo']));
     }
 
-    public function testPopReturnsAnItemAndRemovesItFromEnd()
-    {
-        $coll = Collection::factory(['a','b','c','d',$expected = 'pop goes the weasel']);
-        $this->assertEquals($expected, $coll->pop());
-        $this->assertEquals(['a','b','c','d'], $coll->toArray());
-        $this->assertEquals('d', $coll->pop());
-        $this->assertEquals(['a','b','c'], $coll->toArray());
-    }
-
-    public function testShiftReturnsAnItemAndRemovesItFromBeginning()
-    {
-        $coll = Collection::factory([$expected = 'a','b','c','d','pop goes the weasel']);
-        $this->assertEquals($expected, $coll->shift());
-        $this->assertEquals(['b','c','d','pop goes the weasel'], $coll->toArray());
-        $this->assertEquals('b', $coll->shift());
-        $this->assertEquals(['c','d','pop goes the weasel'], $coll->toArray());
-    }
-
-    public function testPushItemsOntoCollectionAddsToEnd()
-    {
-        $coll = Collection::factory(['a','b','c','d']);
-        $coll->append('e');
-        $this->assertEquals(['a','b','c','d','e'], $coll->toArray());
-        $coll->append('f')
-             ->append('g')
-             ->append(['h', 'i', 'j'])
-             ->append('k');
-        $this->assertEquals(['a','b','c','d','e','f','g',['h','i','j'], 'k'], $coll->toArray());
-    }
-
-    public function testUnshiftAddsToBeginningOfCollection()
-    {
-        $coll = Collection::factory(['a','b','c','d']);
-        $coll->prepend('e');
-        $this->assertEquals(['e','a','b','c','d'], $coll->toArray());
-        $coll->prepend('k')
-             ->prepend(['h', 'i', 'j'])
-             ->prepend('g')
-             ->prepend('f');
-        $this->assertEquals(['f','g',['h','i','j'],'k','e','a','b','c','d'], $coll->toArray());
-    }
+//    public function testAppentItemsOntoCollectionAddsToEnd()
+//    {
+//        $coll = Collection::factory(['a','b','c','d']);
+//        $coll->append('e');
+//        $this->assertEquals(['a','b','c','d','e'], $coll->toArray());
+//        $coll->append('f')
+//             ->append('g')
+//             ->append(['h', 'i', 'j'])
+//             ->append('k');
+//        $this->assertEquals(['a','b','c','d','e','f','g',['h','i','j'], 'k'], $coll->toArray());
+//    }
+//
+//    public function testPrependAddsToBeginningOfCollection()
+//    {
+//        $coll = Collection::factory(['a','b','c','d']);
+//        $coll->prepend('e');
+//        $this->assertEquals(['e','a','b','c','d'], $coll->toArray());
+//        $coll->prepend('k')
+//             ->prepend(['h', 'i', 'j'])
+//             ->prepend('g')
+//             ->prepend('f');
+//        $this->assertEquals(['f','g',['h','i','j'],'k','e','a','b','c','d'], $coll->toArray());
+//    }
 
     public function testMapReturnsANewCollectionContainingValuesAfterCallback()
     {
@@ -320,32 +302,6 @@ class CollectionTest extends AbstractCollectionTest
         });
         $this->assertInstanceOf(CollectionInterface::class, $coll2);
         $this->assertEquals([1,2,3,4,5,6,7,8,9,10], $coll2->toArray());
-    }
-
-    public function testCollectionWalkCallbackModifyInPlace()
-    {
-        $coll = Collection::factory([1,2,3,4,5,6,7,8,9,0]);
-        $context = [
-            'extra_context' => 'foobar',
-            'more_context' => 'boofar'
-        ];
-        $coll->walk(function (&$value, $key, $udata) {
-            if ($key %2 == 0) $value++;
-            else $value--;
-            $value .= $udata['extra_context'];
-        }, $context);
-        $this->assertEquals([
-            '2foobar',
-            '1foobar',
-            '4foobar',
-            '3foobar',
-            '6foobar',
-            '5foobar',
-            '8foobar',
-            '7foobar',
-            '10foobar',
-            '-1foobar'
-        ], $coll->toArray());
     }
 
     public function testCollectionReduceReturnsSingleValueUsingCallback()
@@ -444,36 +400,6 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertTrue(is_traversable($coll));
     }
 
-    public function testOffsetMethodsForCollectionArrayAccess()
-    {
-        $coll = Collection::factory($exp = [
-            'mk'     => 'lady',
-            'lorrie' => 'sweet',
-            'luke'   => 'really cool guy',
-            'terry'  => 'what a fool',
-        ]);
-        $this->assertInstanceOf(ArrayAccess::class, $coll);
-        $this->assertTrue($coll->offsetExists('mk'));
-        $this->assertFalse($coll->offsetExists('mom'));
-        $this->assertEquals('lady', $coll->offsetGet('mk'));
-        $this->assertNull($coll->offsetSet('mk', 'wife'));
-        $this->assertEquals('wife', $coll->offsetGet('mk'));
-        $coll->offsetSet('mom', 'saint');
-        $this->assertTrue($coll->offsetExists('mom'));
-        $this->assertEquals('saint', $coll->offsetGet('mom'));
-        $this->assertNull($coll->offsetUnset('mom'));
-        $this->assertFalse($coll->offsetExists('mom'));
-
-        // now we can test that array syntax works (it will)
-        $this->assertTrue(isset($coll['mk']));
-        $this->assertEquals('wife', $coll['mk']);
-        unset($coll['mk']);
-        $this->assertFalse(isset($coll['mk']));
-        $coll['foo'] = 'var';
-        $this->assertTrue(isset($coll['foo']));
-        $this->assertEquals('var', $coll['foo']);
-    }
-
     public function testCollectionIsCountable()
     {
         $coll = Collection::factory($exp = [
@@ -538,38 +464,38 @@ class CollectionTest extends AbstractCollectionTest
 
     // BEGIN Numeric data method tests
 
-    public function testIncrementDecrementAddsSubtractsOneFromGivenKey()
-    {
-        $coll = collect([10,15,20,25,50,100]);
-        $zero = 0;
-        $coll->increment($zero);
-        $this->assertEquals(11, $coll->get($zero));
-        $coll->increment($zero);
-        $coll->increment($zero);
-        $coll->increment($zero);
-        $coll->increment($zero);
-        $this->assertEquals(15, $coll->get($zero));
-        $coll->decrement($zero);
-        $this->assertEquals(14, $coll->get($zero));
-        $coll->decrement($zero);
-        $coll->decrement($zero);
-        $this->assertEquals(12, $coll->get($zero));
-    }
-
-    public function testIncrementDecrementWithIntervalAddsSubtractsIntervalFromGivenKey()
-    {
-        $coll = collect([10,15,20,25,50,100]);
-        $zero = 0;
-        $coll->increment($zero, 5);
-        $this->assertEquals(15, $coll->get($zero));
-        $coll->increment($zero, 100);
-        $this->assertEquals(115, $coll->get($zero));
-        $coll->decrement($zero, 2);
-        $this->assertEquals(113, $coll->get($zero));
-        $coll->decrement($zero, 1000);
-        $coll->decrement($zero);
-        $this->assertEquals(-888, $coll->get($zero));
-    }
+//    public function testIncrementDecrementAddsSubtractsOneFromGivenKey()
+//    {
+//        $coll = collect([10,15,20,25,50,100]);
+//        $zero = 0;
+//        $coll->increment($zero);
+//        $this->assertEquals(11, $coll->get($zero));
+//        $coll->increment($zero);
+//        $coll->increment($zero);
+//        $coll->increment($zero);
+//        $coll->increment($zero);
+//        $this->assertEquals(15, $coll->get($zero));
+//        $coll->decrement($zero);
+//        $this->assertEquals(14, $coll->get($zero));
+//        $coll->decrement($zero);
+//        $coll->decrement($zero);
+//        $this->assertEquals(12, $coll->get($zero));
+//    }
+//
+//    public function testIncrementDecrementWithIntervalAddsSubtractsIntervalFromGivenKey()
+//    {
+//        $coll = collect([10,15,20,25,50,100]);
+//        $zero = 0;
+//        $coll->increment($zero, 5);
+//        $this->assertEquals(15, $coll->get($zero));
+//        $coll->increment($zero, 100);
+//        $this->assertEquals(115, $coll->get($zero));
+//        $coll->decrement($zero, 2);
+//        $this->assertEquals(113, $coll->get($zero));
+//        $coll->decrement($zero, 1000);
+//        $coll->decrement($zero);
+//        $this->assertEquals(-888, $coll->get($zero));
+//    }
 
 
     public function testSumMethodSumsCollection()
