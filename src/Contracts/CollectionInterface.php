@@ -22,13 +22,22 @@ use Traversable;
 interface CollectionInterface
 {
     /**
-     * Sort this collection (in place).
+     * Return new collection sorted using specified algorithm..
      *
      * @param string|null $alg Sorting algorithm
      *
-     * @return $this
+     * @return CollectionInterface
      */
     public function sort($alg = null);
+
+    /**
+     * Return new collection sorted by key using specified algorithm..
+     *
+     * @param string|null $alg Sorting algorithm
+     *
+     * @return CollectionInterface
+     */
+    public function sortKeys($alg = null);
 
     /**
      * Determine if there is an item at specified index.
@@ -401,10 +410,8 @@ interface CollectionInterface
     /**
      * Fold collection right.
      *
-     * Reduces this collection to one value by passing value, key, and the return value from the previous iteration
+     * Reduces this collection to one value by passing carry, value, key, iter
      * until only one value remains. Iteration begins from the first item in the collection and moves down.
-     *
-     * @todo Change order of callback args to $carry, $val, $key, $iter
      *
      * @param callable $callback The callback function
      * @param          $initial  The initial "carry" value
@@ -416,7 +423,7 @@ interface CollectionInterface
     /**
      * Fold collection left.
      *
-     * Reduces this collection to one value by passing value, key, and the return value from the previous iteration
+     * Reduces this collection to one value by passing carry, value, key, iter
      * until only one value remains. Iteration begins from the last item in the collection and moves up.
 
      * @param callable $callback The callback function

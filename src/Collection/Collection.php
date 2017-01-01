@@ -194,12 +194,30 @@ class Collection implements
         return $this->isValid;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function sort($alg = null)
     {
         if (is_null($alg)) {
-            $alg = 'natcasesort';
+            $alg = 'strnatcasecmp';
         }
-        $alg($this->toArray());
+        $data = $this->getData();
+        uasort($data, $alg);
+
+        return collect($data);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function sortkeys($alg = null)
+    {
+        if (is_null($alg)) {
+            $alg = 'strnatcasecmp';
+        }
+        $data = $this->getData();
+        uksort($data, $alg);
 
         return collect($data);
     }
@@ -254,26 +272,17 @@ class Collection implements
      * Given a value, this method will return the index of the first occurrence of that value.
      *
      * @param mixed $value Value to get the index of
-     * @param bool  $throw Whether to throw an exception if value isn't found
      *
      * @return int|null|string
      */
-    public function indexOf($value, $throw = true)
+    public function indexOf($value)
     {
-        $return = null;
-        $this->first(function($val, $key) use (&$return, $value) {
-            if ($val == $value) {
-                $return = $key;
-                return true;
+        return $this->foldRight(function($carry, $val, $key, $iter) use ($value) {
+            if (is_null($carry) && $val == $value) {
+                return $key;
             }
+            return $carry;
         });
-        if ($throw && is_null($return)) {
-            throw new OutOfBoundsException(sprintf(
-                'Value "%s" not found in collection.',
-                $value
-            ));
-        }
-        return $return;
     }
 
     /**
@@ -554,7 +563,7 @@ class Collection implements
      */
     public function getOffsetKey($offset)
     {
-        if (!is_null($key = $this->foldRight(function($val, $carry, $key, $iter) use ($offset) {
+        if (!is_null($key = $this->foldRight(function($carry, $val, $key, $iter) use ($offset) {
             return ($iter === $offset) ? $key : $carry;
         }))) {
             return $key;
@@ -724,21 +733,23 @@ class Collection implements
      */
     public function chunk($size)
     {
-        $data = [];
-        $group = $iter = 0;
-        foreach ($this as $key => $val) {
-            $data[$group][$key] = $val;
-            if ($iter++ > $size) {
-                $group++;
-                $iter = 0;
+        $numchunks = (int) ($this->count() / $size);
+        return collect($this->foldRight(function($chunks, $val, $key, $iter) use ($size, $numchunks) {
+            if (is_null($chunks)) {
+                $chunks = [];
             }
-        }
-        return collect($data);
+            if ($iter % $size == 0) {
+                // start new chunk
+                array_push($chunks, []);
+            }
+            $chunk = array_pop($chunks);
+            array_push($chunk, $val);
+            array_push($chunks, $chunk);
+
+            return $chunks;
+        }));
     }
 
-    /**
-     * @inheritDoc
-     */
     public function combine($values)
     {
         if (!is_traversable($values)) {
@@ -949,7 +960,7 @@ class Collection implements
         $iter = 0;
         $carry = $initial;
         foreach ($this as $key => $val) {
-            $carry = $callback($val, $carry, $key, $iter++);
+            $carry = $callback($carry, $val, $key, $iter++);
         }
         return $carry;
     }

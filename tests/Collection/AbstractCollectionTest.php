@@ -42,7 +42,7 @@ class AbstractCollectionTest extends UnitTestCase
         $this->immutables = new SplObjectStorage();
         $faker = Faker\Factory::create();
         $faker->seed(static::MY_BDAY);
-        $this->testdata['multi'] = [
+        $this->testdata[static::MultiCollection] = [
             'names' => [],
             'addresses' => [],
             'cities' => [],

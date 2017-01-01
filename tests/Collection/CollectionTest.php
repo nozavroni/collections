@@ -12,6 +12,7 @@ namespace NozTest\Collection;
 
 use ArrayAccess;
 use Countable;
+use Illuminate\Support\Str;
 use \Iterator;
 use \ArrayIterator;
 use Noz\Collection\Collection;
@@ -24,6 +25,337 @@ use function
 
 class CollectionTest extends AbstractCollectionTest
 {
+    // BEGIN NEW TESTS....
+
+    public function testSortReturnsNewCollectionSortedUsingDefaultAlgorithm()
+    {
+        $coll = collect($this->testdata['multi']['names']);
+        $this->watchImmutable($coll);
+        $this->assertEquals([
+            0 => 'Alivia Kemmer',
+            1 => 'Gillian Wisozk',
+            2 => 'Kelley Zemlak',
+            3 => 'Lily Heaney',
+            4 => 'Mr. Blaze Daugherty MD',
+            5 => 'Mr. Jaquan Swift',
+            6 => 'Mrs. Aaliyah Paucek Jr.',
+            7 => 'Mrs. Meredith Wyman',
+            8 => 'Mrs. Raegan Shields PhD',
+            9 => 'Natalia Keebler'
+        ], $coll->sort()->values()->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testSortReturnsNewCollectionSortedUsingCustomAlgorithm()
+    {
+        $coll = collect($this->testdata['multi']['names']);
+        $this->watchImmutable($coll);
+        $sorted = $coll->sort(function($str1, $str2) {
+            $str3 = collect(str_split($str1))->unique()->count();
+            $str4 = collect(str_split($str2))->unique()->count();
+            return $str3 - $str4;
+        });
+        $this->assertEquals([
+            0 => 'Kelley Zemlak',
+            1 => 'Lily Heaney',
+            2 => 'Alivia Kemmer',
+            3 => 'Natalia Keebler',
+            4 => 'Gillian Wisozk',
+            5 => 'Mr. Jaquan Swift',
+            6 => 'Mrs. Meredith Wyman',
+            7 => 'Mr. Blaze Daugherty MD',
+            8 => 'Mrs. Raegan Shields PhD',
+            9 => 'Mrs. Aaliyah Paucek Jr.'
+        ], $sorted->values()->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testSortKeysReturnsNewCollectionSortedByKeyUsingDefaultAlgorithm()
+    {
+        $coll = collect([
+            0 => 'Mrs. Raegan Shields PhD',
+            1 => 'Natalia Keebler',
+            2 => 'Mr. Blaze Daugherty MD',
+            3 => 'Lily Heaney',
+            4 => 'Mr. Jaquan Swift',
+            5 => 'Kelley Zemlak',
+            6 => 'Mrs. Aaliyah Paucek Jr.',
+            7 => 'Mrs. Meredith Wyman',
+            8 => 'Gillian Wisozk',
+            9 => 'Alivia Kemmer'
+        ])->flip();
+        $this->watchImmutable($coll);
+        $sorted = $coll->sortKeys();
+        $this->assertEquals([
+            'Alivia Kemmer' => 9,
+            'Gillian Wisozk' => 8,
+            'Kelley Zemlak' => 5,
+            'Lily Heaney' => 3,
+            'Mr. Blaze Daugherty MD' => 2,
+            'Mr. Jaquan Swift' => 4,
+            'Mrs. Aaliyah Paucek Jr.' => 6,
+            'Mrs. Meredith Wyman' => 7,
+            'Mrs. Raegan Shields PhD' => 0,
+            'Natalia Keebler' => 1
+        ], $sorted->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    // @todo Need MANY more sorting tests...
+    // @todo Need tests for Collection::has()
+    // @todo Need tests for Collection::get()
+    // @todo Need tests for Collection::retrieve()
+    // @todo Need tests for Collection::set()
+    // @todo Need tests for Collection::add()
+
+    public function testIndexOfReturnsIndexOfFirstValueOccurrence()
+    {
+        $coll = collect([1,2,3,'a','b','c', 'p' => 'gee']);
+        $this->assertEquals(2, $coll->indexOf(3));
+        $this->assertEquals(5, $coll->indexOf('c'));
+        $this->assertEquals('p', $coll->indexOf('gee'));
+    }
+
+    // @todo Need tests for Collection::keys()
+    // @todo Need tests for Collection::values()
+    // @todo Need tests for Collection::contains()
+    // @todo Need tests for Collection::prepend()
+    // @todo Need tests for Collection::append()
+
+    public function testChunkSplitsCollectionIntoChunks()
+    {
+        $coll = collect([0,1,2,3,4,5,6,7,8,9]);
+        $this->watchImmutable($coll);
+        $this->assertEquals([[0,1,2,3,4,5,6,7,8,9]], $coll->chunk(11)->toArray());
+        $this->assertEquals([[0,1,2,3,4,5,6,7,8,9]], $coll->chunk(10)->toArray());
+        $this->assertEquals([[0,1,2,3,4,5,6,7,8],[9]], $coll->chunk(9)->toArray());
+        $this->assertEquals([[0,1,2,3,4,5,6,7],[8,9]], $coll->chunk(8)->toArray());
+        $this->assertEquals([[0,1,2,3,4,5,6],[7,8,9]], $coll->chunk(7)->toArray());
+        $this->assertEquals([[0,1,2,3,4,5],[6,7,8,9]], $coll->chunk(6)->toArray());
+        $this->assertEquals([[0,1,2,3,4],[5,6,7,8,9]], $coll->chunk(5)->toArray());
+        $this->assertEquals([[0,1,2,3],[4,5,6,7],[8,9]], $coll->chunk(4)->toArray());
+        $this->assertEquals([[0,1,2],[3,4,5],[6,7,8],[9]], $coll->chunk(3)->toArray());
+        $this->assertEquals([[0,1],[2,3],[4,5],[6,7],[8,9]], $coll->chunk(2)->toArray());
+        $this->assertEquals([[0],[1],[2],[3],[4],[5],[6],[7],[8],[9]], $coll->chunk(1)->toArray());
+        $this->assertEquals([[0],[1],[2],[3],[4],[5],[6],[7],[8],[9]], $coll->chunk(-1)->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testCombineReturnsNewCollectionWithValuesFromInputArray()
+    {
+        $coll = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($coll);
+        $combined = $coll->combine([1986,1992,1994,1985,1961]);
+        $this->assertEquals([
+            'luke' => 1986,
+            'margaret' => 1992,
+            'zach' => 1994,
+            'kevanna' => 1985,
+            'lorrie' => 1961
+        ], $combined->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testCombineReturnsNewCollectionWithValuesFromInputCollection()
+    {
+        $coll = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($coll);
+        $combined = $coll->combine($years = collect([1986,1992,1994,1985,1961]));
+        $this->watchImmutable($years);
+        $this->assertEquals([
+            'luke' => 1986,
+            'margaret' => 1992,
+            'zach' => 1994,
+            'kevanna' => 1985,
+            'lorrie' => 1961
+        ], $combined->toArray());
+        $this->assertImmutable($years);
+        $this->assertImmutable($coll);
+    }
+
+    public function testDiffReturnsNewCollectionWithOnlyValuesNotContainedInInputArray()
+    {
+        $ages = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($ages);
+        $diff = $ages->diff([1,2,3,31,22,5,56,10]);
+        $this->assertEquals([
+            'luke' => 30,
+            'margaret' => 24
+        ], $diff->toArray());
+        $this->assertImmutable($ages);
+    }
+
+    public function testDiffReturnsNewCollectionWithOnlyValuesNotContainedInInputCollection()
+    {
+        $ages = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($ages);
+        $diff = $ages->diff(collect([1,2,3,31,22,5,56,10]));
+        $this->assertEquals([
+            'luke' => 30,
+            'margaret' => 24
+        ], $diff->toArray());
+        $this->assertImmutable($ages);
+    }
+
+    public function testDiffKeysReturnsNewCollectionWithOnlyKeysNotContainedInInputArray()
+    {
+        $ages = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($ages);
+        $diff = $ages->diffKeys([
+            'dave' => 1954,
+            'lyle' => 1981,
+            'jayson' => 1980,
+            'luke' => 1986,
+            'margaret' => 1992
+        ]);
+        $this->assertEquals([
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ], $diff->toArray());
+        $this->assertImmutable($ages);
+    }
+
+    public function testDiffKeysReturnsNewCollectionWithOnlyKeysNotContainedInInputCollection()
+    {
+        $ages = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($ages);
+        $diff = $ages->diffKeys(collect([
+            'jayson' => 1980,
+            'kevanna' => 1985,
+            'luke' => 1986,
+            'zach' => 1994,
+        ]));
+        $this->assertEquals([
+            'lorrie' => 56,
+            'margaret' => 24
+        ], $diff->toArray());
+        $this->assertImmutable($ages);
+    }
+
+    public function testEveryReturnsANewCollectionWithEveryNthItem()
+    {
+        $coll = collect([0,1,2,3,4,5,6,7,8,9]);
+        $this->watchImmutable($coll);
+        $every2nd = $coll->every(2);
+        $this->assertEquals([
+            0 => 0,
+            2 => 2,
+            4 => 4,
+            6 => 6,
+            8 => 8
+        ], $every2nd->toArray());
+        $every3rd = $coll->every(3);
+        $this->assertEquals([
+            0 => 0,
+            3 => 3,
+            6 => 6,
+            9 => 9,
+        ], $every3rd->toArray());
+        $every4th = $coll->every(4);
+        $this->assertEquals([
+            0 => 0,
+            4 => 4,
+            8 => 8
+        ], $every4th->toArray());
+        $every5th = $coll->every(5);
+        $this->assertEquals([
+            0 => 0,
+            5 => 5
+        ], $every5th->toArray());
+        $every6th = $coll->every(6);
+        $this->assertEquals([
+            0 => 0,
+            6 => 6,
+        ], $every6th->toArray());
+        $every7th = $coll->every(7);
+        $this->assertEquals([
+            0 => 0,
+            7 => 7
+        ], $every7th->toArray());
+        $every8th = $coll->every(8);
+        $this->assertEquals([
+            0 => 0,
+            8 => 8
+        ], $every8th->toArray());
+        $every9th = $coll->every(9);
+        $this->assertEquals([
+            0 => 0,
+            9 => 9
+        ], $every9th->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testEveryReturnsANewCollectionWithEveryNthItemStartingAtOffset()
+    {
+        $coll = collect([0,1,2,3,4,5,6,7,8,9]);
+        $this->watchImmutable($coll);
+        $every2nd = $coll->every(2, 1);
+        $this->assertEquals([
+            1 => 1,
+            3 => 3,
+            5 => 5,
+            7 => 7,
+            9 => 9
+        ], $every2nd->toArray());
+        $every3rd = $coll->every(3, 2);
+        $this->assertEquals([
+            2 => 2,
+            5 => 5,
+            8 => 8
+        ], $every3rd->toArray());
+        $every4th = $coll->every(4, 5);
+        $this->assertEquals([
+            5 => 5,
+            9 => 9
+        ], $every4th->toArray());
+        $every5th = $coll->every(5, 5);
+        $this->assertEquals([
+            5 => 5
+        ], $every5th->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    // END NEW TESTS
+
+    // BEGIN OLD TESTS...
+
     public function testCollectFactoryReturnsBasicCollectionByDefault()
     {
         $coll = Collection::factory();
@@ -457,16 +789,16 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertNull($coll->indexOf('notinarray', false));
     }
 
-    /**
-     * @expectedException \OutOfBoundsException
-     */
-    public function testIndexOfThrowsExceptionIfValueNotFoundAndThrowParamIsTrue()
-    {
-        $coll = new Collection(['foo','bar','baz', 'boo' => 'woo']);
-        $this->assertEquals(1, $coll->indexOf('bar'));
-        $this->assertEquals('boo', $coll->indexOf('woo'));
-        $this->assertNull($coll->indexOf('notinarray', true));
-    }
+//    /**
+//     * @expectedException \OutOfBoundsException
+//     */
+//    public function testIndexOfThrowsExceptionIfValueNotFoundAndThrowParamIsTrue()
+//    {
+//        $coll = new Collection(['foo','bar','baz', 'boo' => 'woo']);
+//        $this->assertEquals(1, $coll->indexOf('bar'));
+//        $this->assertEquals('boo', $coll->indexOf('woo'));
+//        $this->assertNull($coll->indexOf('notinarray', true));
+//    }
 
     // BEGIN Numeric data method tests
 
