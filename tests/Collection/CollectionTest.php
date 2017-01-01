@@ -19,7 +19,8 @@ use Noz\Contracts\CollectionInterface;
 
 use function
     Noz\is_traversable,
-    Noz\collect;
+    Noz\collect,
+    Noz\dd;
 
 class CollectionTest extends AbstractCollectionTest
 {
@@ -112,54 +113,55 @@ class CollectionTest extends AbstractCollectionTest
         $coll->retrieve('poo');
     }
 
-//    public function testCollectionSetValue()
-//    {
-//        $in = ['foo' => 'bar', 'baz' => 'bin'];
-//        $coll = Collection::factory($in);
-//        $this->assertNull($coll->get('poo'));
-//        $this->assertInstanceOf(CollectionInterface::class, $coll->set('poo', 'woo!'));
-//        $this->assertEquals('woo!', $coll->get('poo'));
-//    }
+    public function testCollectionSetValueSetsValueInCopyButDoesntChangeOriginal()
+    {
+        $in = ['foo' => 'bar', 'baz' => 'bin'];
+        $coll = Collection::factory($in);
+        $this->watchImmutable($coll);
+        $this->assertNull($coll->get('poo'));
+        $this->assertInstanceOf(CollectionInterface::class, $copy = $coll->set('poo', 'woo!'));
+        $this->assertNull($coll->get('poo'), 'Ensure original collection is not changed by Collection::set().');
+        $this->assertEquals('woo!', $copy->get('poo'), 'Ensure returned collection from Collection::set() has index set to specified value');
+        $this->assertNotSame($coll, $copy, 'Ensure return collection from Collection::set() is a copy.');
+        $this->assertImmutable($coll);
+    }
 
-//    public function testCollectionDeleteValue()
-//    {
-//        $in = ['foo' => 'bar', 'baz' => 'bin'];
-//        $coll = Collection::factory($in);
-//        $this->assertNotNull($coll->get('foo'));
-//        $this->assertInstanceOf(Collection::class, $coll->delete('foo'));
-//        $this->assertNull($coll->get('foo'));
-//    }
+    public function testCollectionDeleteValueDeletesValueInCopyButNotOriginal()
+    {
+        $in = ['foo' => 'bar', 'baz' => 'bin'];
+        $coll = Collection::factory($in);
+        $this->watchImmutable($coll);
+        $this->assertNotNull($coll->get('foo'));
+        $this->assertInstanceOf(Collection::class, $copy = $coll->delete('foo'));
+        $this->assertNull($copy->get('foo'));
+    }
 
-//    /**
-//     * @expectedException \OutOfBoundsException
-//     */
-//    public function testCollectionDeleteValueThrowsExceptionIfThrowIsTrue ()
-//    {
-//        $in = ['foo' => 'bar', 'baz' => 'bin'];
-//        $coll = Collection::factory($in);
-//        $coll->delete('boo', true);
-//    }
-
-//    public function testCollectionToArrayCallsToArrayRecursively()
-//    {
-//        $in1 = ['foo' => 'bar', 'baz' => 'bin'];
-//        $in2 = ['boo' => 'far', 'biz' => 'ban'];
-//        $in3 = ['doo' => 'dar', 'diz' => 'din'];
-//        $coll1 = Collection::factory($in1);
-//        $coll2 = Collection::factory($in2);
-//        $coll2->set('coll1', $coll1);
-//        $coll3 = Collection::factory($in3);
-//        $coll3->set('coll2', $coll2);
-//        $this->assertEquals([
-//            'doo' => 'dar', 'diz' => 'din',
-//            'coll2' => [
-//                'boo' => 'far', 'biz' => 'ban',
-//                'coll1' => [
-//                    'foo' => 'bar', 'baz' => 'bin'
-//                ]
-//            ]
-//        ], $coll3->toArray());
-//    }
+    public function testCollectionToArrayCallsToArrayRecursively()
+{
+    $in1 = ['foo' => 'bar', 'baz' => 'bin'];
+    $in2 = ['boo' => 'far', 'biz' => 'ban'];
+    $in3 = ['doo' => 'dar', 'diz' => 'din'];
+    $coll1 = Collection::factory($in1);
+    $this->watchImmutable($coll1);
+    $coll2 = Collection::factory($in2);
+    $this->watchImmutable($coll2);
+    $copy2 = $coll2->set('coll1', $coll1);
+    $coll3 = Collection::factory($in3);
+    $this->watchImmutable($coll3);
+    $copy3 = $coll3->set('coll2', $copy2);
+    $this->assertEquals([
+        'doo' => 'dar', 'diz' => 'din',
+        'coll2' => [
+            'boo' => 'far', 'biz' => 'ban',
+            'coll1' => [
+                'foo' => 'bar', 'baz' => 'bin'
+            ]
+        ]
+    ], $copy3->toArray());
+    $this->assertImmutable($coll1);
+    $this->assertImmutable($coll2);
+    $this->assertImmutable($coll3);
+}
 
     public function testCollectionKeysReturnsCollectionOfKeys()
     {
@@ -270,29 +272,33 @@ class CollectionTest extends AbstractCollectionTest
         }, ['goo','boo']));
     }
 
-//    public function testAppentItemsOntoCollectionAddsToEnd()
-//    {
-//        $coll = Collection::factory(['a','b','c','d']);
-//        $coll->append('e');
-//        $this->assertEquals(['a','b','c','d','e'], $coll->toArray());
-//        $coll->append('f')
-//             ->append('g')
-//             ->append(['h', 'i', 'j'])
-//             ->append('k');
-//        $this->assertEquals(['a','b','c','d','e','f','g',['h','i','j'], 'k'], $coll->toArray());
-//    }
-//
-//    public function testPrependAddsToBeginningOfCollection()
-//    {
-//        $coll = Collection::factory(['a','b','c','d']);
-//        $coll->prepend('e');
-//        $this->assertEquals(['e','a','b','c','d'], $coll->toArray());
-//        $coll->prepend('k')
-//             ->prepend(['h', 'i', 'j'])
-//             ->prepend('g')
-//             ->prepend('f');
-//        $this->assertEquals(['f','g',['h','i','j'],'k','e','a','b','c','d'], $coll->toArray());
-//    }
+    public function testAppentItemsOntoCollectionAddsToEnd()
+    {
+        $coll = Collection::factory(['a','b','c','d']);
+        $this->watchImmutable($coll);
+        $copy1 = $coll->append('e');
+        $this->assertEquals(['a','b','c','d','e'], $copy1->toArray());
+        $copy2 = $copy1->append('f')
+             ->append('g')
+             ->append(['h', 'i', 'j'])
+             ->append('k');
+        $this->assertEquals(['a','b','c','d','e','f','g',['h','i','j'], 'k'], $copy2->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testPrependAddsToBeginningOfCollection()
+    {
+        $coll = Collection::factory(['a','b','c','d']);
+        $this->watchImmutable($coll);
+        $copy = $coll->prepend('e');
+        $this->assertEquals(['e','a','b','c','d'], $copy->toArray());
+        $copy2 = $copy->prepend('k')
+             ->prepend(['h', 'i', 'j'])
+             ->prepend('g')
+             ->prepend('f');
+        $this->assertEquals(['f','g',['h','i','j'],'k','e','a','b','c','d'], $copy2->toArray());
+        $this->assertImmutable($coll);
+    }
 
     public function testMapReturnsANewCollectionContainingValuesAfterCallback()
     {
@@ -464,38 +470,60 @@ class CollectionTest extends AbstractCollectionTest
 
     // BEGIN Numeric data method tests
 
-//    public function testIncrementDecrementAddsSubtractsOneFromGivenKey()
-//    {
-//        $coll = collect([10,15,20,25,50,100]);
-//        $zero = 0;
-//        $coll->increment($zero);
-//        $this->assertEquals(11, $coll->get($zero));
-//        $coll->increment($zero);
-//        $coll->increment($zero);
-//        $coll->increment($zero);
-//        $coll->increment($zero);
-//        $this->assertEquals(15, $coll->get($zero));
-//        $coll->decrement($zero);
-//        $this->assertEquals(14, $coll->get($zero));
-//        $coll->decrement($zero);
-//        $coll->decrement($zero);
-//        $this->assertEquals(12, $coll->get($zero));
-//    }
-//
-//    public function testIncrementDecrementWithIntervalAddsSubtractsIntervalFromGivenKey()
-//    {
-//        $coll = collect([10,15,20,25,50,100]);
-//        $zero = 0;
-//        $coll->increment($zero, 5);
-//        $this->assertEquals(15, $coll->get($zero));
-//        $coll->increment($zero, 100);
-//        $this->assertEquals(115, $coll->get($zero));
-//        $coll->decrement($zero, 2);
-//        $this->assertEquals(113, $coll->get($zero));
-//        $coll->decrement($zero, 1000);
-//        $coll->decrement($zero);
-//        $this->assertEquals(-888, $coll->get($zero));
-//    }
+    public function testIncrementDecrementAddsSubtractsOneFromGivenKey()
+    {
+        $coll = collect([10,15,20,25,50,100]);
+        $this->watchImmutable($coll);
+        $zero = 0;
+        $copy = $coll->increment($zero);
+        $this->watchImmutable($copy);
+        $this->assertEquals(11, $copy->get($zero));
+        $copy2 = $copy->increment($zero)
+            ->increment($zero)
+            ->increment($zero)
+            ->increment($zero);
+        $this->watchImmutable($copy2);
+        $this->assertEquals(15, $copy2->get($zero));
+        $copy3 = $copy2->decrement($zero);
+        $this->watchImmutable($copy3);
+        $this->assertEquals(14, $copy3->get($zero));
+        $copy4 = $copy3->decrement($zero)
+            ->decrement($zero);
+        $this->watchImmutable($copy4);
+        $this->assertEquals(12, $copy4->get($zero));
+        $this->assertImmutable($coll);
+        $this->assertImmutable($copy);
+        $this->assertImmutable($copy2);
+        $this->assertImmutable($copy3);
+        $this->assertImmutable($copy4);
+    }
+
+    public function testIncrementDecrementWithIntervalAddsSubtractsIntervalFromGivenKey()
+    {
+        $coll = collect([10,15,20,25,50,100]);
+        $this->watchImmutable($coll);
+        $zero = 0;
+        $copy = $coll->increment($zero, 5);
+        $this->watchImmutable($copy);
+        $this->assertEquals(15, $copy->get($zero));
+        $copy2 = $copy->increment($zero, 100);
+        $this->watchImmutable($copy2);
+        $this->assertEquals(115, $copy2->get($zero));
+        $copy3 = $copy2->decrement($zero, 2);
+        $this->watchImmutable($copy3);
+        $this->assertEquals(113, $copy3->get($zero));
+        $copy4 = $copy3->decrement($zero, 1000);
+        $this->watchImmutable($copy4);
+        $copy5 = $copy4->decrement($zero);
+        $this->watchImmutable($copy5);
+        $this->assertEquals(-888, $copy5->get($zero));
+        $this->assertImmutable($coll);
+        $this->assertImmutable($copy);
+        $this->assertImmutable($copy2);
+        $this->assertImmutable($copy3);
+        $this->assertImmutable($copy4);
+        $this->assertImmutable($copy5);
+    }
 
 
     public function testSumMethodSumsCollection()

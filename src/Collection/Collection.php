@@ -20,6 +20,7 @@ use OutOfBoundsException;
 use Traversable;
 
 use Noz\Traits\IsArrayable;
+use Noz\Traits\IsImmutable;
 
 use function
     Noz\is_traversable,
@@ -49,6 +50,7 @@ class Collection implements
     Iterator
 {
     use IsArrayable;
+    use IsImmutable;
 
     /**
      * @var array The collection of data this object represents
@@ -774,7 +776,7 @@ class Collection implements
     {
         return collect(
             array_diff_key(
-                $this->toArray(),
+                $this->getData(),
                 collect($data)->toArray()
             )
         );
@@ -1021,12 +1023,12 @@ class Collection implements
      * This method modifies its internal data array rather than returning a new
      * collection.
      *
-     * @param mixed $key      The key of the item you want to decrement.
+     * @param mixed $index      The key of the item you want to decrement.
      * @param int   $interval The interval that $key should be decremented by
      *
      * @return CollectionInterface
      */
-    public function decrement($key, $interval = 1)
+    public function decrement($index, $interval = 1)
     {
         $val = $this->retrieve($index);
         $val -= $interval;

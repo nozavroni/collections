@@ -11,8 +11,10 @@
 namespace NozTest\Collection;
 
 use Noz\Collection\Collection;
+use function Noz\object_hash;
 use NozTest\UnitTestCase;
 use Faker;
+use SplObjectStorage;
 
 class AbstractCollectionTest extends UnitTestCase
 {
@@ -26,9 +28,18 @@ class AbstractCollectionTest extends UnitTestCase
 
     protected $testdata = [];
 
+    /**
+     * Immutable object storage.
+     *
+     * @var SplObjectStorage
+     */
+    protected $immutables;
+
     public function setUp()
     {
         parent::setUp();
+        // used to store objects that I need to watch to make sure they don't change
+        $this->immutables = new SplObjectStorage();
         $faker = Faker\Factory::create();
         $faker->seed(static::MY_BDAY);
         $this->testdata['multi'] = [
@@ -79,5 +90,34 @@ class AbstractCollectionTest extends UnitTestCase
             ];
         }
         $this->testdata[Collection::class] = $faker->words(15);
+    }
+
+    /**
+     * Watch an immutable object to see if it changes in any way while working with it.
+     *
+     * @param object $obj The immutable object
+     */
+    protected function watchImmutable($obj)
+    {
+        $this->immutables->attach($obj, object_hash($obj));
+    }
+
+    /**
+     * Assert "Watched" immutable object hasn't changed.
+     *
+     * @param object $obj The object to check
+     *
+     * @return bool
+     */
+    protected function assertImmutable($obj)
+    {
+        if ($this->immutables->contains($obj)) {
+            return object_hash($obj) == $this->immutables[$obj];
+        }
+        $this->fail(sprintf(
+            'Object checksum assertion failed for object: %s <%s>',
+            get_class($obj),
+            object_hash($obj)
+        ));
     }
 }

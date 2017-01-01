@@ -251,6 +251,8 @@ function typeof($data, $meta = true/*, $returnType = 'string'*/)
 //    return $return;
 }
 
+// BEGIN debug/testing functions
+
 /**
  * Dump and die.
  *
@@ -282,4 +284,40 @@ function dd($input, $exit = true, $label = null)
     if ($exit) {
         exit;
     }
+}
+
+/**
+ * Exactly the same as var_dump, except that it returns its output rather than dumping it.
+ */
+function sdump($var)
+{
+    ob_start();
+    var_dump($var);
+    return ob_get_clean();
+}
+
+/**
+ * Get object hash/checksum.
+ * Using a var_dump of an object, this will return a hash that tells you if anything in your object has changed. Just
+ * create a hash of an object, do some stuff with it, then create another hash of it and compare the two. If they are
+ * different, teh object has changed in some way.
+ *
+ * @param object $obj The object to hash
+ * @param string $alg The hash algorithm (supports md5 or sha1)
+ *
+ * @return string
+ *
+ * @throws InvalidArgumentException
+ */
+function object_hash($obj, $alg = 'md5')
+{
+    $algorithms = ['md5', 'sha1'];
+    if (!in_array($alg, $algorithms)) {
+        throw new InvalidArgumentException(sprintf(
+            '"%s" is not a valid hash algorithm (%s).',
+            $alg,
+            implode(', ', $algorithms)
+        ));
+    }
+    return call_user_func($alg, sdump($obj));
 }
