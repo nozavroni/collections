@@ -20,7 +20,6 @@ use OutOfBoundsException;
 use Traversable;
 
 use Noz\Traits\IsArrayable;
-use Noz\Traits\IsImmutable;
 
 use function
     Noz\is_traversable,
@@ -50,7 +49,6 @@ class Collection implements
     Iterator
 {
     use IsArrayable;
-    use IsImmutable;
 
     /**
      * @var array The collection of data this object represents
