@@ -11,6 +11,7 @@
 namespace NozTest\Collection;
 
 use ArrayAccess;
+use Closure;
 use Countable;
 use Illuminate\Support\Str;
 use \Iterator;
@@ -18,6 +19,7 @@ use \ArrayIterator;
 use Noz\Collection\Collection;
 use Noz\Contracts\CollectionInterface;
 
+use function Noz\invoke;
 use function
     Noz\is_traversable,
     Noz\collect,

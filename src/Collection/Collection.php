@@ -9,12 +9,12 @@
  */
 namespace Noz\Collection;
 
-use ArrayAccess;
 use ArrayIterator;
 use Countable;
 use InvalidArgumentException;
 use Iterator;
-use Noz\Contracts\ArrayableInterface;
+use Noz\Contracts\Arrayable;
+use Noz\Contracts\Invokable;
 use Noz\Contracts\CollectionInterface;
 use OutOfBoundsException;
 use Traversable;
@@ -25,7 +25,6 @@ use function
     Noz\is_traversable,
     Noz\typeof,
     Noz\collect;
-
 
 /**
  * Class Collection.
@@ -44,7 +43,8 @@ use function
  */
 class Collection implements
     CollectionInterface,
-    ArrayableInterface,
+    Arrayable,
+    Invokable,
     Countable,
     Iterator
 {
@@ -78,6 +78,27 @@ class Collection implements
             ));
         }
         $this->setData($data);
+    }
+
+    public function __invoke()
+    {
+        $args = collect(func_get_args());
+        if ($args->hasOffset(0)) {
+            if ($args->hasOffset(1)) {
+                // two args only...
+                return $this->set($args->getOffset(0), $args->getOffset(1));
+            }
+            // one arg only...
+            $arg1 = $args->getOffset(0);
+            if (is_scalar($arg1)) {
+                return $this->get($arg1);
+            }
+            if (is_traversable($arg1)) {
+                return $this->union($arg1);
+            }
+            // @todo Should probably throw ane invalid arg exception here...
+        }
+        return $this->toArray();
     }
 
     /**

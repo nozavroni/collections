@@ -10,13 +10,14 @@
 namespace Noz\Contracts;
 
 /**
- * Interface IsArrayable.
+ * InvokableInterface.
  *
- * Ensures a class can be converted to an array using toArray()
+ * Ensures a class's instances are invokable. That is, you can call an instance of the class just as if it were a
+ * function, by calling call_user_func* on it or invoking it directly using parenthesis.
  *
  * @package Noz\Contracts
  */
-interface ArrayableInterface
+interface Invokable
 {
-    public function toArray();
+    public function __invoke();
 }

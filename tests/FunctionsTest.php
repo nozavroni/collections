@@ -11,6 +11,7 @@
 namespace NozTest;
 
 use ArrayIterator;
+use Closure;
 use Exception;
 use function
     Noz\collect,
@@ -18,7 +19,8 @@ use function
     Noz\is_traversable,
     Noz\is_arrayable,
     Noz\to_array,
-    Noz\typeof;
+    Noz\typeof,
+    Noz\_;
 use Noz\Collection\Collection;
 use Noz\Contracts\CollectionInterface;
 use SplObjectStorage;
@@ -77,6 +79,19 @@ class FunctionsTest extends UnitTestCase
     public function testInvokeInvokesAnonymousFunction()
     {
         $this->assertEquals(6, invoke(function($one, $two, $three) { return $one + $two + $three; }, 1, 2, 3), 'Ensure that Noz\\invoke() uses first argument as callback and invokes it, passing remaining arguments as the function parameters.');
+    }
+
+    public function testInvokeCanInvokeStringIfItIsAValidFunctionName()
+    {
+        $this->assertEquals('string', invoke('gettype', 'str'));
+        $this->assertEquals('string', invoke('\Noz\typeof', 'str'));
+    }
+
+    public function testInvokeCanInvokeObjectsThatImplementMagicInvokeMethod()
+    {
+        $coll = collect([3,2,1]);
+        $this->assertEquals(3, invoke($coll, 0));
+        $this->assertEquals(2, invoke($coll, 1));
     }
 
     public function testIsTraversableTestsThatValueIsArrayOrTraversable()
@@ -148,5 +163,44 @@ class FunctionsTest extends UnitTestCase
         $this->assertEquals('resource <stream>', typeof(STDIN));
         $this->assertEquals('stdClass', typeof(new stdClass, false));
         $this->assertEquals('stream', typeof(STDIN, false));
+    }
+
+    public function testUnderscoreIsAliasForInvokeIfPassedACallable()
+    {
+        $c = [
+            'anonymous_no_args' => function() { return 'foo'; },
+            'anonymous_one_arg' => function($foo) { return $foo; },
+            'anonymous_two_args' => function($foo, $bar) { return $foo . $bar; }
+        ];
+        $this->assertEquals('foo', _($c['anonymous_no_args']));
+        $this->assertEquals('BAR', _($c['anonymous_one_arg'], 'BAR'));
+        $this->assertEquals('fooBAR', _($c['anonymous_two_args'], 'foo', 'BAR'));
+
+        $closure_no_args = $c['anonymous_no_args']->bindTo($this);
+        $this->assertEquals('foo', _($closure_no_args));
+        $closure_one_arg = $c['anonymous_one_arg']->bindTo($this);
+        $this->assertEquals('boo', _($closure_one_arg, 'boo'));
+        $closure_two_args = $c['anonymous_two_args']->bindTo($this);
+        $this->assertEquals('booFAR', _($closure_two_args, 'boo', 'FAR'));
+    }
+
+    public function testUnderscoreCanInvokeCollectionMethods()
+    {
+        $coll = collect($expected = ['a' => 'foo','b' => 'bar','c' => 'baz']);
+        $this->assertEquals('bar', _([$coll, 'get'], 'b'));
+        $this->assertInstanceOf(Collection::class, _([$coll, 'set'], 'b', 'BAR!'));
+    }
+
+    public function testCurryWithUnderscore()
+    {
+        $arrows = function($a) {
+            return function($b) use ($a) {
+                return function ($c) use ($a, $b) {
+                    return "{$a} -> {$b} -> {$c}";
+                };
+            };
+        };
+        // kinda verbose, but this is the best it's going to get for currying in PHP...
+        $this->assertEquals('foo -> bar -> baz', _(_(_($arrows, 'foo'), 'bar'), 'baz'));
     }
 }

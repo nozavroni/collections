@@ -9,6 +9,7 @@
  */
 namespace Noz;
 
+use Closure;
 use InvalidArgumentException;
 use Iterator;
 use Noz\Collection\Collection;
@@ -46,7 +47,29 @@ function collect($data = null)
  */
 function invoke(callable $callback, ...$args)
 {
-    return $callback(...$args);
+    return call_user_func($callback, ...$args);
+}
+
+/**
+ * Underscore function.
+
+ * This function is meant to work sort of like jQuery's "$()". It is a contextual catch-all type function. It works
+ * as a short-hand alias for invoke, collect, and with.
+
+ * @param callable|mixed    $in
+ * @param mixed ...         $_
+ *
+ * @return mixed|CollectionInterface
+ */
+function _($in, ...$args)
+{
+    if (is_callable($in)) {
+        return invoke($in, ...$args);
+    }
+    if (is_traversable($in)) {
+        return collect($in);
+    }
+    return $in;
 }
 
 /**
@@ -132,6 +155,7 @@ function to_array($data, $strict = true)
         if ($data instanceof Iterator) {
             return iterator_to_array($data);
         }
+        // @todo I don't think this will EVER be called...
         if ($data instanceof Traversable) {
             return traversable_to_array($data);
         }
@@ -188,67 +212,6 @@ function typeof($data, $meta = true/*, $returnType = 'string'*/)
         }
     }
     return $type;
-//    $params = [
-//        'type' => strtolower(gettype($data)),
-//        'class' => null,
-//        'size' => null,
-//        'value' => null
-//    ];
-//    switch($params['type']) {
-//        case 'object':
-//            $params['class'] = get_class($data);
-//            break;
-//        case 'resource':
-//            $params['class'] = get_resource_type($data);
-//            break;
-//        case 'array':
-//            $params['size'] = count($data);
-//            break;
-//        case 'boolean':
-//            $params['value'] = $data ? 'true' : 'false';
-//            break;
-//        case 'string':
-//            $params['size'] = strlen($data);
-//            $params['value'] = $data;
-//            break;
-//        case 'integer':
-//            $params['size'] = strlen($data);
-//            $params['value'] = $data;
-//            break;
-//        case 'double':
-//            list($real, $decimal) = explode('.', $data, 2);
-//            $params['size'] = strlen($real) . ',' . strlen($decimal);
-//            $params['value'] = $data;
-//            break;
-//        case 'null':
-//            break;
-//        case 'unknown type':
-//        default:
-//            $params['type'] = 'undefined';
-//            break;
-//    }
-//    if ($returnType == 'array') {
-//        if (!$meta) {
-//            return ['type' => $params['type']];
-//        }
-//        return collect($params)->filter(function($val) {
-//            return !is_null($val);
-//        })->toArray();
-//    }
-//    if (!$meta) {
-//        return $params['type'];
-//    }
-//    $return = $params['type'];
-//    if (!is_null($params['class'])) {
-//        $return .= " <{$params['class']}>";
-//    }
-//    if (!is_null($params['size'])) {
-//        $return .= " <{$params['size']}>";
-//    }
-//    if (!is_null($params['value'])) {
-//        $return .= " ({$params['value']})";
-//    }
-//    return $return;
 }
 
 // BEGIN debug/testing functions
