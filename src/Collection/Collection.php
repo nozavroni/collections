@@ -110,10 +110,12 @@ class Collection implements
      */
     private function setData($data)
     {
+        $arr = [];
         foreach ($data as $index => $value) {
-            $this->data[$index] = $value;
+            $arr[$index] = $value;
         }
-        reset($this->data);
+        $this->data = $arr;
+        $this->rewind();
     }
 
     /**
