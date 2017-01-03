@@ -425,6 +425,19 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertImmutable($coll);
     }
 
+    public function testZip()
+    {
+        $coll1 = collect(['broom','chair','table']);
+        $coll2 = collect(['shoe','shirt','hat']);
+        $coll3 = collect(['toothbrush','floss','flouride']);
+        $this->assertEquals([
+            ['broom','shoe','toothbrush'],
+            ['chair','shirt','floss'],
+            ['table','hat','flouride'],
+        ], $coll1->zip($coll2->toArray(), $coll3->toArray())->toArray());
+
+    }
+
     // END NEW TESTS
 
     // BEGIN OLD TESTS...

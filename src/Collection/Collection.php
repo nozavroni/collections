@@ -24,7 +24,9 @@ use Noz\Traits\IsArrayable;
 use function
     Noz\is_traversable,
     Noz\typeof,
-    Noz\collect;
+    Noz\collect,
+    Noz\is_arrayable,
+    Noz\to_array;
 
 /**
  * Class Collection.
@@ -973,7 +975,7 @@ class Collection implements
     {
         return collect(
             array_merge(
-                $this->toArray(),
+                $this->getData(),
                 collect($data)->toArray()
             )
         );
@@ -984,10 +986,28 @@ class Collection implements
      */
     public function zip(...$data)
     {
+        /** @var CollectionInterface $args The function arguments TODO: Change this to SequenceInterface when you have that interface. */
+        $args = collect(func_get_args());
+        $args->map(function($val) {
+            if (is_arrayable($val)) {
+                return to_array($val);
+            } else {
+                // @todo throw exception?
+                return [];
+            }
+        });
+        $args = $args->prepend($this->getData())
+                     ->prepend(null);
+
         return collect(
-            array_map(
-                $this->toArray(),
-                ...$data
+//            array_map(
+//                null,
+//                $this->getData(),
+//                ...$data
+//            )
+            call_user_func_array(
+                'array_map',
+                $args->toArray()
             )
         );
     }
