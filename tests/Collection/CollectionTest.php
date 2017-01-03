@@ -354,6 +354,77 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertImmutable($coll);
     }
 
+    public function testExceptReturnsCollectionWithAllButValuesAtSpecifiedIndices()
+    {
+        $coll = collect([
+            'foo' => 'FOO',
+            'bar' => 'BAR',
+            'baz' => 'BAZ',
+            'bin' => 'BIN'
+        ]);
+        $this->watchImmutable($coll);
+        $exceptBazBin = $coll->except(['baz','bin']);
+        $this->assertEquals(['foo' => 'FOO','bar' => 'BAR'], $exceptBazBin->toArray());
+        $exceptFooBinColl = $coll->except(collect(['foo','bin']));
+        $this->assertEquals(['bar' => 'BAR','baz' => 'BAZ'], $exceptFooBinColl->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testFlipReturnsCollectionWithKeysValuesFlipped()
+    {
+        $coll = collect([
+            'foo' => 'FOO',
+            'bar' => 'BAR',
+            'baz' => 'BAZ',
+            'bin' => 'BIN'
+        ]);
+        $this->watchImmutable($coll);
+        $this->assertEquals([
+            'FOO' => 'foo',
+            'BAR' => 'bar',
+            'BAZ' => 'baz',
+            'BIN' => 'bin'
+        ], $coll->flip()->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    // @TODO I skipped a BUNCH of methods here...
+
+    public function testSplitReturnsCollectionWithItemsSplitIntoNumGroups()
+    {
+        $coll = collect(range(0,20));
+        $this->watchImmutable($coll);
+        $this->assertEquals([
+            [0,1,2,3,4],
+            [5,6,7,8],
+            [9,10,11,12],
+            [13,14,15,16],
+            [17,18,19,20]
+        ], $coll->split(5)->toArray());
+        $this->assertEquals([
+            [0,1,2,3,4,5,6],
+            [7,8,9,10,11,12,13],
+            [14,15,16,17,18,19,20]
+        ], $coll->split(3)->toArray());
+        $this->assertEquals([
+            [ 0, 1, 2, 3, 4, 5],
+            [ 6, 7, 8, 9,10],
+            [11,12,13,14,15],
+            [16,17,18,19,20]
+        ], $coll->split(4)->toArray());
+        $this->assertEquals([
+            [ 0, 1, 2],
+            [ 3, 4, 5],
+            [ 6, 7, 8],
+            [ 9,10,11],
+            [12,13,14],
+            [15,16],
+            [17,18],
+            [19,20],
+        ], $coll->split(8)->toArray());
+        $this->assertImmutable($coll);
+    }
+
     // END NEW TESTS
 
     // BEGIN OLD TESTS...

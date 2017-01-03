@@ -754,8 +754,7 @@ class Collection implements
      */
     public function chunk($size)
     {
-        $numchunks = (int) ($this->count() / $size);
-        return collect($this->foldRight(function($chunks, $val, $key, $iter) use ($size, $numchunks) {
+        return collect($this->foldRight(function($chunks, $val, $key, $iter) use ($size) {
             if (is_null($chunks)) {
                 $chunks = [];
             }
@@ -934,17 +933,37 @@ class Collection implements
      */
     public function split($num)
     {
-        $data = [];
-        $group = $iter = 0;
-        $size = (int) ($this->count() / $num);
-        foreach ($this as $key => $val) {
-            $data[$group][$key] = $val;
-            if ($iter++ > $size) {
-                $group++;
-                $iter = 0;
+        $count = $this->count();
+        $size = (int)($count / $num);
+        $mod = $count % $num;
+        return collect($this->foldRight(function($chunks, $val, $key, $iter) use ($num, $size, $mod) {
+            $chunk_count = count($chunks);
+            if ($chunk_count <= $mod) {
+                $size++;
             }
-        }
-        return collect($data);
+            if (is_null($chunks)) {
+                // create initial chunks array...
+                $chunks = [[]];
+            }
+
+            // grab the most recent chunk
+            $chunk = array_pop($chunks);
+
+            if (count($chunk) < $size) {
+                // if chunk is less than the expected size, add value to it
+                array_push($chunk, $val);
+                array_push($chunks, $chunk);
+            } else {
+                // otherwise, add the chunk back and add the value to a new chunk
+                array_push($chunks, $chunk);
+                if ($chunk_count <= $num) {
+                    $chunk = [$val];
+                }
+                array_push($chunks, $chunk);
+            }
+
+            return $chunks;
+        }));
     }
 
     /**
