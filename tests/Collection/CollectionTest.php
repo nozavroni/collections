@@ -275,7 +275,7 @@ class CollectionTest extends AbstractCollectionTest
     {
         $coll = collect([0,1,2,3,4,5,6,7,8,9]);
         $this->watchImmutable($coll);
-        $every2nd = $coll->every(2);
+        $every2nd = $coll->nth(2);
         $this->assertEquals([
             0 => 0,
             2 => 2,
@@ -283,40 +283,40 @@ class CollectionTest extends AbstractCollectionTest
             6 => 6,
             8 => 8
         ], $every2nd->toArray());
-        $every3rd = $coll->every(3);
+        $every3rd = $coll->nth(3);
         $this->assertEquals([
             0 => 0,
             3 => 3,
             6 => 6,
             9 => 9,
         ], $every3rd->toArray());
-        $every4th = $coll->every(4);
+        $every4th = $coll->nth(4);
         $this->assertEquals([
             0 => 0,
             4 => 4,
             8 => 8
         ], $every4th->toArray());
-        $every5th = $coll->every(5);
+        $every5th = $coll->nth(5);
         $this->assertEquals([
             0 => 0,
             5 => 5
         ], $every5th->toArray());
-        $every6th = $coll->every(6);
+        $every6th = $coll->nth(6);
         $this->assertEquals([
             0 => 0,
             6 => 6,
         ], $every6th->toArray());
-        $every7th = $coll->every(7);
+        $every7th = $coll->nth(7);
         $this->assertEquals([
             0 => 0,
             7 => 7
         ], $every7th->toArray());
-        $every8th = $coll->every(8);
+        $every8th = $coll->nth(8);
         $this->assertEquals([
             0 => 0,
             8 => 8
         ], $every8th->toArray());
-        $every9th = $coll->every(9);
+        $every9th = $coll->nth(9);
         $this->assertEquals([
             0 => 0,
             9 => 9
@@ -328,7 +328,7 @@ class CollectionTest extends AbstractCollectionTest
     {
         $coll = collect([0,1,2,3,4,5,6,7,8,9]);
         $this->watchImmutable($coll);
-        $every2nd = $coll->every(2, 1);
+        $every2nd = $coll->nth(2, 1);
         $this->assertEquals([
             1 => 1,
             3 => 3,
@@ -336,18 +336,18 @@ class CollectionTest extends AbstractCollectionTest
             7 => 7,
             9 => 9
         ], $every2nd->toArray());
-        $every3rd = $coll->every(3, 2);
+        $every3rd = $coll->nth(3, 2);
         $this->assertEquals([
             2 => 2,
             5 => 5,
             8 => 8
         ], $every3rd->toArray());
-        $every4th = $coll->every(4, 5);
+        $every4th = $coll->nth(4, 5);
         $this->assertEquals([
             5 => 5,
             9 => 9
         ], $every4th->toArray());
-        $every5th = $coll->every(5, 5);
+        $every5th = $coll->nth(5, 5);
         $this->assertEquals([
             5 => 5
         ], $every5th->toArray());

@@ -818,7 +818,7 @@ class Collection implements
     /**
      * @inheritDoc
      */
-    public function every($nth, $offset = null)
+    public function nth($nth, $offset = null)
     {
         return $this->slice($offset)->filter(function($val, $key, $iter) use ($nth) {
             return $iter % $nth == 0;

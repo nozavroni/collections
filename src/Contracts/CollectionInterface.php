@@ -22,24 +22,6 @@ use Traversable;
 interface CollectionInterface
 {
     /**
-     * Return new collection sorted using specified algorithm..
-     *
-     * @param string|null $alg Sorting algorithm
-     *
-     * @return CollectionInterface
-     */
-    public function sort($alg = null);
-
-    /**
-     * Return new collection sorted by key using specified algorithm..
-     *
-     * @param string|null $alg Sorting algorithm
-     *
-     * @return CollectionInterface
-     */
-    public function sortKeys($alg = null);
-
-    /**
      * Determine if there is an item at specified index.
      *
      * @param string|int $index The index to check
@@ -84,17 +66,7 @@ interface CollectionInterface
      */
     public function set($index, $value);
 
-    /**
-     * Add value at index.
-     *
-     * Set value at provided index if it doesn't already exist.
-     *
-     * @param string|int $index Add value at this index
-     * @param mixed      $value Add this value at index
-     *
-     * @return mixed
-     */
-    public function add($index, $value);
+
 
     /**
      * Delete value from collection at given index.
@@ -129,38 +101,16 @@ interface CollectionInterface
     public function values();
 
     /**
-     * Check that collection contains a value.
+     * Add value at index.
      *
-     * You may optionally pass in a callable to provide your own equality test.
+     * Set value at provided index if it doesn't already exist.
      *
-     * @param mixed|callable  $value The value to search for
-     * @param int|string|null $index The index to search for
+     * @param string|int $index Add value at this index
+     * @param mixed      $value Add this value at index
      *
      * @return mixed
      */
-    public function contains($value, $index = null);
-
-    /**
-     * Prepend item to collection.
-     *
-     * Prepend an item to this collection (in place).
-     *
-     * @param mixed $item Item to prepend to collection
-     *
-     * @return $this
-     */
-    public function prepend($item);
-
-    /**
-     * Append item to collection.
-     *
-     * Append an item to this collection (in place).
-     *
-     * @param mixed $item Item to append to collection
-     *
-     * @return $this
-     */
-    public function append($item);
+    public function add($index, $value);
 
     /**
      * Split collection into chunks.
@@ -216,7 +166,7 @@ interface CollectionInterface
      *
      * @return mixed
      */
-    public function every($nth, $offset = null);
+    public function nth($nth, $offset = null);
 
     /**
      * Except keys.
@@ -228,6 +178,17 @@ interface CollectionInterface
      * @return CollectionInterface
      */
     public function except($indexes);
+
+    /**
+     * Get values at specified indices.
+     *
+     * Returns a new collection containing only elements found at specified indices.
+     *
+     * @param array<int|string>|CollectionInterface $indices An array or collection of indices
+     *
+     * @return CollectionInterface
+     */
+    public function only($indices);
 
     /**
      * Flip keys with values.
@@ -259,39 +220,6 @@ interface CollectionInterface
      * @return CollectionInterface
      */
     public function intersectKeys($data);
-
-    /**
-     * Is collection empty?
-     * You may optionally pass in a callback which will determine if each of the items within the collection are empty.
-     * If all items in the collection are empty according to this callback, this method will return true.
-     *
-     * @param callable $callback The callback
-     *
-     * @return bool
-     */
-    public function isEmpty(callable $callback = null);
-
-    /**
-     * Get values at specified indices.
-     *
-     * Returns a new collection containing only elements found at specified indices.
-     *
-     * @param array<int|string>|CollectionInterface $indices An array or collection of indices
-     *
-     * @return CollectionInterface
-     */
-    public function only($indices);
-
-    /**
-     * Pipe collection through callback.
-     *
-     * Passes entire collection to provided callback and returns the result.
-     *
-     * @param callable $callback
-     *
-     * @return mixed
-     */
-    public function pipe(callable $callback);
 
     /**
      * Get random item(s).
@@ -475,28 +403,9 @@ interface CollectionInterface
      */
     public function first(callable $callback = null, $default = null);
 
-    /**
-     * Does every item return true?
-     *
-     * If callback is provided, this method will return true if all items in collection cause callback to return true.
-     * Otherwise, it will return true if all items in the collection have a truthy value.
-     *
-     * @param callable|null $callback The callback
-     *
-     * @return bool
-     */
-    public function all(callable $callback = null);
 
-    /**
-     * Does every item return false?
-     *
-     * This method is the exact opposite of "all".
-     *
-     * @param callable|null $callback The callback
-     *
-     * @return bool
-     */
-    public function none(callable $callback = null);
+
+
 
     /**
      * Get last item.
@@ -571,18 +480,4 @@ interface CollectionInterface
      * @return int|string
      */
     public function getOffsetKey($offset);
-
-    /**
-     * Get count.
-     *
-     * If a callback is supplied, this method will return the number of items that cause the callback to return true.
-     * Otherwise, all items in the collection will be counted.
-     *
-     * @todo If having the callback param causes collection not to be able to implement Countable,
-     *       just get rid of it. You can do the same thing with filter($callback)->Count()
-     *
-     * @param callable $callback The (optional) callback function
-     * @return int
-     */
-    public function count(callable $callback = null);
 }
