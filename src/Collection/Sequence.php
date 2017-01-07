@@ -9,11 +9,14 @@
  */
 namespace Noz\Collection;
 
+use ArrayAccess;
 use BadMethodCallException;
 
 use Countable;
 use Traversable;
 use SplFixedArray;
+
+use Illuminate\Support\Str;
 
 use Noz\Contracts\Structure\Sequenceable;
 use Noz\Contracts\Immutable;
@@ -21,18 +24,25 @@ use Noz\Contracts\Arrayable;
 use Noz\Contracts\Invokable;
 
 use Noz\Traits\IsImmutable;
+use Noz\Traits\IsContainer;
 
 use function Noz\to_array;
 use function Noz\is_traversable;
 
 class Sequence implements
+    ArrayAccess,
     Sequenceable,
     Immutable,
     Countable,
     Arrayable,
     Invokable
 {
-    use IsImmutable;
+    use IsImmutable, IsContainer;
+
+    /**
+     * Delimiter used to fetch slices.
+     */
+    const SLICE_DELIM = ':';
 
     /**
      * Fixed-size data storage array.
@@ -63,9 +73,6 @@ class Sequence implements
         }
         $data = array_values(to_array($data));
         $this->data = SplFixedArray::fromArray($data);
-//        $size = count($data);
-//        $this->data = new SplFixedArray($size);
-
     }
 
     protected function getData()
@@ -92,41 +99,102 @@ class Sequence implements
         return $this->getData();
     }
 
+    /**
+     * Invoke sequence.
+     * A sequence is invokable as if it were a function. This allows some pretty useful functionality such as negative
+     * indexing, sub-sequence selection, etc.
+     *
+     * @internal param int $offset The offset to return
+     *
+     * @return mixed
+     *
+     * @todo Put all the slice logic into a helper function or several
+     */
     public function __invoke()
     {
+        $args = func_get_args();
+        if (count($args)) {
+            $count = $this->count();
+            $offset = array_pop($args);
+            if (Str::contains($offset, static::SLICE_DELIM)) {
+                // return slice
+                list($start, $end) = explode(static::SLICE_DELIM, $offset, 2);
+                if ($start == '') {
+                    $start = 0;
+                }
+                if ($end == '') {
+                    $end = $count - 1;
+                }
+                if (is_numeric($start) && is_numeric($end)) {
+                    if ($start < 0) {
+                        $start = $count - abs($start);
+                    }
+                    if ($end < 0) {
+                        $end = $count - abs($end);
+                    }
+                    $length = $end - $start + 1;
+                    return new static(array_slice($this->getData(), $start, $length));
+                }
+            }
+            if (is_numeric($offset)) {
+                if ($offset < 0) {
+                    $offset = $count - abs($offset);
+                }
+                return $this[$offset];
+            }
+        }
         return $this->toArray();
+    }
+
+    public function offsetGet($offset)
+    {
+        return $this->data->offsetGet($offset);
+    }
+
+    public function offsetSet($offset, $value)
+    {
+        // TODO: Implement offsetSet() method.
+    }
+
+    public function offsetUnset($offset)
+    {
+        // TODO: Implement offsetUnset() method.
+    }
+
+    public function offsetExists($offset)
+    {
+        return $this->data->offsetExists($offset);
     }
 
     /**
      * Prepend item to collection.
      * Prepend an item to this collection (in place).
      * @param mixed $item Item to prepend to collection
-     * @return $this
-     */public function prepend($item)
-{
-    // TODO: Implement prepend() method.
-}
+     * @return Sequence
+     */
+     public function prepend($item)
+     {
+         $arr = $this->getData();
+         array_unshift($arr, $item);
+         return new static($arr);
+     }
 
     /**
      * Append item to collection.
      * Append an item to this collection (in place).
      * @param mixed $item Item to append to collection
-     * @return $this
+     * @return Sequence
      */
     public function append($item)
     {
-        // TODO: Implement append() method.
+        $arr = $this->getData();
+        array_push($arr, $item);
+        return new static($arr);
     }
 
-    /**
-     * Check that collection contains a value.
-     * You may optionally pass in a callable to provide your own equality test.
-     * @param mixed|callable $value The value to search for
-     * @return mixed
-     */
-    public function contains($value)
+    public function fold(callable $funk, $initial = null)
     {
-        // TODO: Implement contains() method.
+        return array_reduce($this->getData(), $funk, $initial);
     }
 
     /**
@@ -173,6 +241,54 @@ class Sequence implements
     public function none(callable $callback = null)
     {
         // TODO: Implement none() method.
+    }
+
+    public function first(callable $funk = null, $default = null)
+    {
+        // TODO: Implement first() method.
+    }
+
+    public function last(callable $funk = null, $default = null)
+    {
+        // TODO: Implement last() method.
+    }
+
+    /**
+     * Return new sequence with the first item "bumped" off.
+     * @return Sequenceable
+     */
+    public function bump()
+    {
+        // TODO: Implement bump() method.
+    }
+
+    /**
+     * Return new sequence with the last item "dropped" off.
+     * @return Sequenceable
+     */
+    public function drop()
+    {
+        // TODO: Implement drop() method.
+    }
+
+    public function getOffset($offset)
+    {
+        // TODO: Implement getOffset() method.
+    }
+
+    public function hasOffset($offset)
+    {
+        // TODO: Implement hasOffset() method.
+    }
+
+    public function setOffset($offset)
+    {
+        // TODO: Implement setOffset() method.
+    }
+
+    public function unsetOffset($offset)
+    {
+        // TODO: Implement unsetOffset() method.
     }
 
     /**

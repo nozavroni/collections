@@ -736,7 +736,7 @@ class CollectionTest extends AbstractCollectionTest
             'luke'   => 'really cool guy',
             'terry'  => 'what a fool'
         ]);
-        $this->assertEquals('really cool guy', $coll->foldRight(function($item, $carry, $key, $iter) {
+        $this->assertEquals('really cool guy', $coll->fold(function($item, $carry, $key, $iter) {
             if (strlen($item) >= strlen($carry)) {
                 return $item;
             }

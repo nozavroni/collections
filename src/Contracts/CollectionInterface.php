@@ -346,7 +346,7 @@ interface CollectionInterface
      *
      * @return mixed
      */
-    public function foldRight(callable $callback, $initial = null);
+    public function fold(callable $callback, $initial = null);
 
     /**
      * Fold collection left.
@@ -359,11 +359,11 @@ interface CollectionInterface
      *
      * @return mixed
      */
-    public function foldLeft(callable $callback, $initial = null);
+    public function foldl(callable $callback, $initial = null);
 
     /**
      * Filter collection.
-     *
+     *`
      * Filters this collection using a callback function. The callback is passed the item value, followed by its index,
      * followed by a numeric iteration value. The resulting collection will contain
      *

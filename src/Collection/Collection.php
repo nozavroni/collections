@@ -16,6 +16,7 @@ use Iterator;
 use Noz\Contracts\Arrayable;
 use Noz\Contracts\Invokable;
 use Noz\Contracts\CollectionInterface;
+use Noz\Traits\IsContainer;
 use OutOfBoundsException;
 use Traversable;
 
@@ -50,7 +51,7 @@ class Collection implements
     Countable,
     Iterator
 {
-    use IsArrayable;
+    use IsArrayable, IsContainer;
 
     /**
      * @var array The collection of data this object represents
@@ -300,7 +301,7 @@ class Collection implements
      */
     public function indexOf($value)
     {
-        return $this->foldRight(function($carry, $val, $key, $iter) use ($value) {
+        return $this->fold(function($carry, $val, $key, $iter) use ($value) {
             if (is_null($carry) && $val == $value) {
                 return $key;
             }
@@ -328,44 +329,6 @@ class Collection implements
     public function values()
     {
         return collect(array_values($this->getData()));
-    }
-
-    /**
-     * Determine if this collection contains a value.
-     *
-     * Allows you to pass in a value or a callback function and optionally an index,
-     * and tells you whether or not this collection contains that value.
-     * If the $index param is specified, only that index will be looked under.
-     *
-     * @param mixed|callable $value The value to check for
-     * @param mixed          $index The (optional) index to look under
-     *
-     * @return bool True if this collection contains $value
-     *
-     * @todo Maybe add $identical param for identical comparison (===)
-     * @todo Allow negative offset for second param
-     */
-    public function contains($value, $index = null)
-    {
-        return (bool) $this->first(function ($val, $key) use ($value, $index) {
-            if (is_callable($value)) {
-                $found = $value($val, $key);
-            } else {
-                $found = ($value == $val);
-            }
-            if ($found) {
-                if (is_null($index)) {
-                    return true;
-                }
-                if (is_array($index)) {
-                    return in_array($key, $index);
-                }
-
-                return $key == $index;
-            }
-
-            return false;
-        });
     }
 
     /**
@@ -586,7 +549,7 @@ class Collection implements
      */
     public function getOffsetKey($offset)
     {
-        if (!is_null($key = $this->foldRight(function($carry, $val, $key, $iter) use ($offset) {
+        if (!is_null($key = $this->fold(function($carry, $val, $key, $iter) use ($offset) {
             return ($iter === $offset) ? $key : $carry;
         }))) {
             return $key;
@@ -756,7 +719,7 @@ class Collection implements
      */
     public function chunk($size)
     {
-        return collect($this->foldRight(function($chunks, $val, $key, $iter) use ($size) {
+        return collect($this->fold(function($chunks, $val, $key, $iter) use ($size) {
             if (is_null($chunks)) {
                 $chunks = [];
             }
@@ -938,7 +901,7 @@ class Collection implements
         $count = $this->count();
         $size = (int)($count / $num);
         $mod = $count % $num;
-        return collect($this->foldRight(function($chunks, $val, $key, $iter) use ($num, $size, $mod) {
+        return collect($this->fold(function($chunks, $val, $key, $iter) use ($num, $size, $mod) {
             $chunk_count = count($chunks);
             if ($chunk_count <= $mod) {
                 $size++;
@@ -1015,7 +978,7 @@ class Collection implements
     /**
      * @inheritDoc
      */
-    public function foldRight(callable $callback, $initial = null)
+    public function fold(callable $callback, $initial = null)
     {
         $iter = 0;
         $carry = $initial;
@@ -1028,9 +991,9 @@ class Collection implements
     /**
      * @inheritDoc
      */
-    public function foldLeft(callable $callback, $initial = null)
+    public function foldl(callable $callback, $initial = null)
     {
-        return $this->reverse()->foldRight($callback, $initial);
+        return $this->reverse()->fold($callback, $initial);
     }
 
     /**
