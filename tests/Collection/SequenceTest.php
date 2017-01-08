@@ -86,6 +86,36 @@ class SequenceTest extends AbstractCollectionTest
         $this->assertEquals(['a','c','d','e'], $seq->except(1)->toArray());
         $this->assertEquals(['a','c','e'], $seq->except([1,3])->toArray());
         $this->assertEquals(['a','e'], $seq->except('1:3')->toArray());
+        $this->assertEquals(['e'], $seq->except(':3')->toArray());
+        $this->assertEquals(['a','b','c'], $seq->except('3:')->toArray());
+        $this->assertEquals([], $seq->except(':')->toArray());
+    }
+
+    public function testOffsetExists()
+    {
+        $seq = new Sequence(['ab','cd','ef','gh','ij']);
+        $this->assertTrue($seq->offsetExists(0));
+        $this->assertTrue($seq->offsetExists(1));
+        $this->assertTrue($seq->offsetExists(4));
+        $this->assertFalse($seq->offsetExists(5));
+    }
+
+    public function testOffsetExistsWithBrackets()
+    {
+        $seq = new Sequence(['ab','cd','ef','gh','ij']);
+        $this->assertTrue(isset($seq[0]));
+        $this->assertTrue(isset($seq[2]));
+        $this->assertTrue(isset($seq[3]));
+        $this->assertFalse(isset($seq[5]));
+    }
+
+    public function testOffsetExistsWithNegativeOffset()
+    {
+        $seq = new Sequence(['ab','cd','ef','gh','ij']);
+        $this->assertTrue(isset($seq[-5]));
+        $this->assertTrue(isset($seq[-3]));
+        $this->assertTrue(isset($seq[-1]));
+        $this->assertFalse(isset($seq[-6]));
     }
 
     public function testInvokableAllowsStandardIndexing()

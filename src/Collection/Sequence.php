@@ -301,6 +301,9 @@ class Sequence implements
      */
     public function offsetExists($offset)
     {
+        if ($offset < 0) {
+            $offset = $this->count() + $offset;
+        }
         return $this->data->offsetExists($offset);
     }
 
