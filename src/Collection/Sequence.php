@@ -206,7 +206,7 @@ class Sequence implements
      */
     public function isEmpty(callable $callback = null)
     {
-        // TODO: Implement isEmpty() method.
+
     }
 
     /**
@@ -224,28 +224,44 @@ class Sequence implements
      * Does every item return true?
      * If callback is provided, this method will return true if all items in collection cause callback to return true.
      * Otherwise, it will return true if all items in the collection have a truthy value.
-     * @param callable|null $callback The callback
+     * @param callable|null $funk The callback
      * @return bool
      */
-    public function every(callable $callback = null)
+    public function every(callable $funk = null)
     {
-        // TODO: Implement every() method.
+        return $this->fold(function($carry, $val, $key, $iter) use ($funk) {
+            if (!$carry) {
+                return false;
+            }
+            if (!is_null($funk)) {
+                return $funk($val, $key, $iter);
+            }
+            return (bool) $val;
+        }, true);
     }
 
     /**
      * Does every item return false?
      * This method is the exact opposite of "all".
-     * @param callable|null $callback The callback
+     * @param callable|null $funk The callback
      * @return bool
      */
-    public function none(callable $callback = null)
+    public function none(callable $funk = null)
     {
-        // TODO: Implement none() method.
+        return $this->fold(function($carry, $val, $key, $iter) use ($funk) {
+            if ($carry) {
+                return false;
+            }
+            if (!is_null($funk)) {
+                return !$funk($val, $key, $iter);
+            }
+            return !((bool) $val);
+        }, false);
     }
 
     public function first(callable $funk = null, $default = null)
     {
-        // TODO: Implement first() method.
+
     }
 
     public function last(callable $funk = null, $default = null)
