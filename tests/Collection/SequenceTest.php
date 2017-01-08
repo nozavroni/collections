@@ -356,6 +356,29 @@ class SequenceTest extends AbstractCollectionTest
         $this->assertEquals('default', $seq->first(function($val, $key) {
             return Str::contains($val, 'z');
         }, 'default'), 'Ensure default is returned if callback provided and nothing is found.');
+    }
 
+    public function testLastReturnsLastItemInSequenceOrDefault()
+    {
+        $seq = new Sequence(['abc','def','ghi','jkl','mno', 'pqr']);
+        $this->assertEquals('pqr', $seq->last(), 'Ensure last item is returned if no callback provided.');
+        $seq = new Sequence();
+        $this->assertEquals('default', $seq->last(null, 'default'), 'Ensure default is returned if sequence is empty.');
+        $seq = new Sequence(['abc','def','ghi','jkl','mno', 'pqr', 'hello world', 'bbb']);
+        $this->assertEquals('hello world', $seq->last(function($val, $key) {
+            return Str::contains($val, 'h');
+        }), 'Ensure last matching item is returned if callback provided.');
+        $this->assertEquals('default', $seq->last(function($val, $key) {
+            return Str::contains($val, 'z');
+        }, 'default'), 'Ensure default is returned if callback provided and nothing is found.');
+    }
+
+    public function testReverseReturnsSequenceInReverseOrder()
+    {
+        $seq = new Sequence(['abc','def','ghi','jkl','mno', 'pqr']);
+        $this->assertEquals(
+            ['pqr','mno','jkl','ghi','def','abc'],
+            $seq->reverse()->toArray()
+        );
     }
 }

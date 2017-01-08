@@ -369,7 +369,12 @@ class Sequence implements
 
     public function last(callable $funk = null, $default = null)
     {
-        // TODO: Implement last() method.
+        return $this->reverse()->first($funk, $default);
+    }
+
+    public function reverse()
+    {
+        return new static(array_reverse($this->getData()));
     }
 
     /**
