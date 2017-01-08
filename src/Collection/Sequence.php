@@ -9,25 +9,28 @@
  */
 namespace Noz\Collection;
 
-use ArrayAccess;
 use BadMethodCallException;
+use OutOfRangeException;
+use RuntimeException;
 
+use ArrayAccess;
 use Countable;
-use Traversable;
 use SplFixedArray;
+use Traversable;
 
 use Illuminate\Support\Str;
 
-use Noz\Contracts\Structure\Sequenceable;
-use Noz\Contracts\Immutable;
 use Noz\Contracts\Arrayable;
+use Noz\Contracts\Immutable;
 use Noz\Contracts\Invokable;
+use Noz\Contracts\Structure\Sequenceable;
 
-use Noz\Traits\IsImmutable;
 use Noz\Traits\IsContainer;
+use Noz\Traits\IsImmutable;
 
-use function Noz\to_array;
-use function Noz\is_traversable;
+use function
+    Noz\to_array,
+    Noz\is_traversable;
 
 class Sequence implements
     ArrayAccess,
@@ -148,7 +151,17 @@ class Sequence implements
 
     public function offsetGet($offset)
     {
-        return $this->data->offsetGet($offset);
+        if (Str::contains($offset, static::SLICE_DELIM)) {
+            return $this($offset)->toArray();
+        }
+        if ($offset < 0) {
+            $offset = $this->count() + $offset;
+        }
+        try {
+            return $this->data->offsetGet($offset);
+        } catch (RuntimeException $e) {
+            throw new OutOfRangeException($e->getMessage());
+        }
     }
 
     public function offsetSet($offset, $value)
@@ -194,30 +207,41 @@ class Sequence implements
 
     public function fold(callable $funk, $initial = null)
     {
-        return array_reduce($this->getData(), $funk, $initial);
+        $carry = $initial;
+        foreach ($this->getData() as $key => $val) {
+            $carry = $funk($carry, $val, $key);
+        }
+        return $carry;
     }
 
     /**
      * Is collection empty?
      * You may optionally pass in a callback which will determine if each of the items within the collection are empty.
      * If all items in the collection are empty according to this callback, this method will return true.
-     * @param callable $callback The callback
+     *
+     * @param callable $funk The callback
+     *
      * @return bool
      */
-    public function isEmpty(callable $callback = null)
+    public function isEmpty(callable $funk = null)
     {
-
+        if (is_callable($funk)) {
+            return $this->fold(function ($carry, $val) use ($funk) {
+                return $carry && $funk($val);
+            });
+        }
+        return empty($this->data);
     }
 
     /**
      * Pipe collection through callback.
      * Passes entire collection to provided callback and returns the result.
-     * @param callable $callback
+     * @param callable $funk The callback funkshun
      * @return mixed
      */
-    public function pipe(callable $callback)
+    public function pipe(callable $funk)
     {
-        // TODO: Implement pipe() method.
+        return $funk($this);
     }
 
     /**
@@ -229,12 +253,12 @@ class Sequence implements
      */
     public function every(callable $funk = null)
     {
-        return $this->fold(function($carry, $val, $key, $iter) use ($funk) {
+        return $this->fold(function($carry, $val, $key) use ($funk) {
             if (!$carry) {
                 return false;
             }
             if (!is_null($funk)) {
-                return $funk($val, $key, $iter);
+                return $funk($val, $key);
             }
             return (bool) $val;
         }, true);
@@ -248,12 +272,12 @@ class Sequence implements
      */
     public function none(callable $funk = null)
     {
-        return $this->fold(function($carry, $val, $key, $iter) use ($funk) {
+        return $this->fold(function($carry, $val, $key) use ($funk) {
             if ($carry) {
                 return false;
             }
             if (!is_null($funk)) {
-                return !$funk($val, $key, $iter);
+                return !$funk($val, $key);
             }
             return !((bool) $val);
         }, false);
@@ -285,26 +309,6 @@ class Sequence implements
     public function drop()
     {
         // TODO: Implement drop() method.
-    }
-
-    public function getOffset($offset)
-    {
-        // TODO: Implement getOffset() method.
-    }
-
-    public function hasOffset($offset)
-    {
-        // TODO: Implement hasOffset() method.
-    }
-
-    public function setOffset($offset)
-    {
-        // TODO: Implement setOffset() method.
-    }
-
-    public function unsetOffset($offset)
-    {
-        // TODO: Implement unsetOffset() method.
     }
 
     /**
