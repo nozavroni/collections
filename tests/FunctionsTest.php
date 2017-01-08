@@ -13,6 +13,7 @@ namespace NozTest;
 use ArrayIterator;
 use Closure;
 use Exception;
+use InvalidArgumentException;
 use function
     Noz\collect,
     Noz\invoke,
@@ -290,6 +291,22 @@ class FunctionsTest extends UnitTestCase
      * @expectedException RuntimeException
      */
     public function testNormalizeOffsetThrowsExceptionForInvalidOffset()
+    {
+        normalize_offset('chooochooo');
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     */
+    public function testNormalizeOffsetWillThrowExceptionIfPassedNegativeOffsetWithoutCount()
+    {
+        normalize_offset(-10, null);
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testGetCountThrowsExceptionOnInvalidInput()
     {
         normalize_offset('chooochooo');
     }
