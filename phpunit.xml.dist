@@ -10,15 +10,12 @@
          verbose="true"
          bootstrap="tests/bootstrap.php">
     <testsuites>
-      <testsuite name="Core Nozavroni/Collections Functionality">
-          <file>tests/FunctionsTest.php</file>
-          <file>tests/Collection/CollectionTest.php</file>
-          <file>tests/Collection/CharCollectionTest.php</file>
-          <file>tests/Collection/NumericCollectionTest.php</file>
-          <file>tests/Collection/MultiCollectionTest.php</file>
-          <file>tests/Collection/TabularCollectionTest.php</file>
-          <file>tests/Collection/ObjectCollectionTest.php</file>
-      </testsuite>
+        <testsuite name="Core Nozavroni/Collections Functionality">
+            <file>tests/FunctionsTest.php</file>
+            <file>tests/Collection/CollectionTest.php</file>
+            <file>tests/Collection/SequenceTest.php</file>
+            <file>tests/Collection/LstTest.php</file>
+        </testsuite>
     </testsuites>
     <filter>
         <whitelist>
