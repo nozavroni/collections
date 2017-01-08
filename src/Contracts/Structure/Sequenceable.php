@@ -19,7 +19,7 @@ interface Sequenceable extends Collectable
 {
     public function first(callable $funk = null, $default = null);
     public function last(callable $funk = null, $default = null);
-
+    public function reverse();
     /**
      * Return new sequence with the first item "bumped" off.
      *
