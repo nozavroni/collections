@@ -155,10 +155,6 @@ function to_array($data, $strict = true)
         if (method_exists($data, 'toArray')) {
             return $data->toArray();
         }
-        if ($data instanceof Iterator) {
-            return iterator_to_array($data);
-        }
-        // @todo I don't think this will EVER be called...
         if ($data instanceof Traversable) {
             return traversable_to_array($data);
         }
@@ -230,10 +226,6 @@ function get_count($data)
         if (isset($count)) {
             return (int) $count;
         }
-    }
-
-    if (is_numeric($data)) {
-        return (int) $data;
     }
 
     throw new RuntimeException('Cannot convert to int.');

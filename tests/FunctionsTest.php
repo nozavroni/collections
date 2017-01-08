@@ -12,8 +12,10 @@ namespace NozTest;
 
 use ArrayIterator;
 use Closure;
+use EmptyIterator;
 use Exception;
 use InvalidArgumentException;
+use LimitIterator;
 use function
     Noz\collect,
     Noz\invoke,
@@ -26,7 +28,11 @@ use function
     Noz\_;
 use Noz\Collection\Collection;
 use Noz\Contracts\CollectionInterface;
+use Noz\Contracts\Structure\Collectable;
 use function Noz\get_count;
+use function Noz\object_hash;
+use function Noz\sdump;
+use function Noz\traversable_to_array;
 use RuntimeException;
 use SplObjectStorage;
 use stdClass;
@@ -156,6 +162,14 @@ class FunctionsTest extends UnitTestCase
         $this->assertEquals(['foo' => 'bar','bar' => 'baz'], to_array($obj, false));
     }
 
+    /**
+     * @expectedException InvalidArgumentException
+     */
+    public function testToArrayThrowsExceptionIfStrictArgIsTrueAndItCannotConvertInputToAnArray()
+    {
+        to_array(new stdClass, true);
+    }
+
     public function testTypeOfReturnsDataType()
     {
         $this->assertEquals('NULL', typeof(null));
@@ -196,6 +210,30 @@ class FunctionsTest extends UnitTestCase
         $this->assertInstanceOf(Collection::class, _([$coll, 'set'], 'b', 'BAR!'));
     }
 
+    public function testUnderscoreAliasForCollectIfPassedTraversable()
+    {
+        $arr = [1,2,3,4];
+        $this->assertInstanceOf(CollectionInterface::class, _($arr));
+    }
+
+    public function testUnderscoreSimplyReturnsArgIfItDoesntKnowWhatElseToDoWithIt()
+    {
+        $in = false;
+        $this->assertSame($in, _($in));
+    }
+
+    public function testTraversableToArrayWillReturnArrayForAnythingTraversable()
+    {
+        $arr = new ArrayIterator([1,2,3]);
+        $t2a = traversable_to_array($arr);
+        $this->assertInternalType('array', $t2a);
+        $this->assertEquals([1,2,3], $t2a);
+        $coll = collect([1,2,3]);
+        $c2a = traversable_to_array($coll);
+        $this->assertInternalType('array', $c2a);
+        $this->assertEquals([1,2,3], $c2a);
+    }
+
     public function testCurryWithUnderscore()
     {
         $arrows = function($a) {
@@ -230,6 +268,18 @@ class FunctionsTest extends UnitTestCase
               ->willReturn('10');
 
         $this->assertSame(10, get_count($stub10));
+
+        $this->assertSame(0, get_count(''));
+        $this->assertSame(0, get_count(0));
+        $this->assertEquals(4, get_count(new LimitIterator(new ArrayIterator([1,2,3,4]))));
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testGetCountThrowsRuntimeExceptionIfCountCannotBeDetermined()
+    {
+        get_count('i like ham');
     }
 
     public function testNormalizeOffset()
@@ -290,6 +340,14 @@ class FunctionsTest extends UnitTestCase
     /**
      * @expectedException RuntimeException
      */
+    public function testGetRangeStartEndThrowsRuntimeExceptionIfCannotDetermineStartLength()
+    {
+        get_range_start_end('this will not work');
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
     public function testNormalizeOffsetThrowsExceptionForInvalidOffset()
     {
         normalize_offset('chooochooo');
@@ -309,5 +367,34 @@ class FunctionsTest extends UnitTestCase
     public function testGetCountThrowsExceptionOnInvalidInput()
     {
         normalize_offset('chooochooo');
+    }
+
+    public function testSdumpReturnsDumpAsString()
+    {
+        $obj = new stdClass;
+        $obj->one = 1;
+        $obj->two = [1,2];
+        ob_start();
+        var_dump($obj);
+        $expected = ob_get_clean();
+        $this->assertEquals($expected, sdump($obj));
+    }
+    
+    public function testObjectHashReturnsHashOfDumpedObject()
+    {
+        $obj = new stdClass;
+        $obj->foo = 'bar';
+        $dumpstr = sdump($obj);
+        $this->assertEquals(md5($dumpstr), object_hash($obj));
+        $this->assertEquals(sha1($dumpstr), object_hash($obj, 'sha1'));
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     * @expectedExceptionMessage "bar" is not a valid hash algorithm (md5, sha1).
+     */
+    public function testObjectHashThrowsExceptionForInvalidHashAlgo()
+    {
+        object_hash('foo','bar');
     }
 }
