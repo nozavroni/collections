@@ -33,6 +33,8 @@ interface Sequenceable extends Collectable
      * @return Sequenceable
      */
     public function drop();
+    public function diff($data);
+    public function diffKeys($data);
     public function offsetGet($offset);
     public function offsetSet($offset, $value);
     public function offsetUnset($offset);

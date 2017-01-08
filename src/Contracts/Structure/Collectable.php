@@ -104,39 +104,4 @@ interface Collectable
      * @return array
      */
     public function toArray();
-
-    /**
-     * Get collection as a sequence.
-     *
-     * @return array
-     */
-    public function toSeq();
-
-    /**
-     * Get collection as a dictionary.
-     *
-     * @return array
-     */
-    public function toDict();
-
-    /**
-     * Get collection as a set.
-     *
-     * @return array
-     */
-    public function toSet();
-
-    /**
-     * Get collection as a map.
-     *
-     * @return array
-     */
-    public function toMap();
-
-    /**
-     * Get collection as a list.
-     *
-     * @return array
-     */
-    public function toList();
 }

@@ -11,7 +11,6 @@ namespace Noz\Collection;
 
 use BadMethodCallException;
 use Noz\Traits\IsArrayable;
-use OutOfRangeException;
 use RuntimeException;
 
 use Iterator;
@@ -32,8 +31,19 @@ use Noz\Traits\IsImmutable;
 
 use function
     Noz\to_array,
-    Noz\is_traversable;
+    Noz\is_traversable,
+    Noz\get_range_start_end;
 
+/**
+ * Sequence Collection.
+ *
+ * A sequence is a collection with consecutive, numeric indexes, starting from zero. It is immutable, and so any
+ * operation that requires a change to its state will return a new sequence with whatever changes were intended.
+ * The fact that this type of collection is indexed in this way allows some very convenient and useful functionality.
+ * For instance, you can treat a sequence as if it were a regular array, using square brackets. Unlike a regular array
+ * however, you may use a negative index to get the n-th from the last item. You may also use a string in the form of
+ * "$start:$end" to retrieve a "slice" of the sequence.
+ */
 class Sequence implements
     Sequenceable,
     ArrayAccess,
@@ -72,40 +82,23 @@ class Sequence implements
 
     /**
      * Invoke sequence.
+     *
      * A sequence is invokable as if it were a function. This allows some pretty useful functionality such as negative
      * indexing, sub-sequence selection, etc.
      *
-     * @internal param int $offset The offset to return
+     * @param int $offset The offset to return
      *
      * @return mixed
      *
      * @todo Put all the slice logic into a helper function or several
      */
-    public function __invoke()
+    public function __invoke($offset = null)
     {
-        $args = func_get_args();
-        if (count($args)) {
+        if (func_num_args()) {
             $count = $this->count();
-            $offset = array_pop($args);
             if (Str::contains($offset, static::SLICE_DELIM)) {
-                // return slice
-                list($start, $end) = explode(static::SLICE_DELIM, $offset, 2);
-                if ($start == '') {
-                    $start = 0;
-                }
-                if ($end == '') {
-                    $end = $count - 1;
-                }
-                if (is_numeric($start) && is_numeric($end)) {
-                    if ($start < 0) {
-                        $start = $count - abs($start);
-                    }
-                    if ($end < 0) {
-                        $end = $count - abs($end);
-                    }
-                    $length = $end - $start + 1;
-                    return new static(array_slice($this->getData(), $start, $length));
-                }
+                list($start, $length) = get_range_start_end($offset ,$count);
+                return new static(array_slice($this->getData(), $start, $length));
             }
             if (is_numeric($offset)) {
                 if ($offset < 0) {
@@ -151,10 +144,9 @@ class Sequence implements
     }
 
     /**
-     * Return the current element
-     * @link  http://php.net/manual/en/iterator.current.php
-     * @return mixed Can return any type.
-     * @since 5.0.0
+     * Return the current element.
+     *
+     * @return mixed
      */
     public function current()
     {
@@ -162,10 +154,7 @@ class Sequence implements
     }
 
     /**
-     * Move forward to next element
-     * @link  http://php.net/manual/en/iterator.next.php
-     * @return void Any returned value is ignored.
-     * @since 5.0.0
+     * Move forward to next element.
      */
     public function next()
     {
@@ -173,10 +162,9 @@ class Sequence implements
     }
 
     /**
-     * Return the key of the current element
-     * @link  http://php.net/manual/en/iterator.key.php
-     * @return mixed scalar on success, or null on failure.
-     * @since 5.0.0
+     * Return the key of the current element.
+     *
+     * @return mixed|null
      */
     public function key()
     {
@@ -184,11 +172,9 @@ class Sequence implements
     }
 
     /**
-     * Checks if current position is valid
-     * @link  http://php.net/manual/en/iterator.valid.php
-     * @return boolean The return value will be casted to boolean and then evaluated.
-     * Returns true on success or false on failure.
-     * @since 5.0.0
+     * Checks if current position is valid.
+     *
+     * @return boolean
      */
     public function valid()
     {
@@ -196,10 +182,7 @@ class Sequence implements
     }
 
     /**
-     * Rewind the Iterator to the first element
-     * @link  http://php.net/manual/en/iterator.rewind.php
-     * @return void Any returned value is ignored.
-     * @since 5.0.0
+     * Rewind the Iterator to the first element.
      */
     public function rewind()
     {
@@ -207,19 +190,24 @@ class Sequence implements
     }
 
     /**
-     * Count elements of an object
-     * @link  http://php.net/manual/en/countable.count.php
+     * Count elements of an object.
+     *
      * @return int The custom count as an integer.
-     * </p>
-     * <p>
-     * The return value is cast to an integer.
-     * @since 5.1.0
      */
     public function count()
     {
         return $this->data->count();
     }
 
+    /**
+     * Get item at collection.
+     *
+     * This method functions as the ArrayAccess getter. Depending on whether an int, a negative int, or a string is passed, this
+     *
+     * @param int|string $offset Offset (index) to retrieve
+     *
+     * @return mixed
+     */
     public function offsetGet($offset)
     {
         if (Str::contains($offset, static::SLICE_DELIM)) {
@@ -228,32 +216,137 @@ class Sequence implements
         if ($offset < 0) {
             $offset = $this->count() + $offset;
         }
-        try {
-            return $this->data->offsetGet($offset);
-        } catch (RuntimeException $e) {
-            throw new OutOfRangeException($e->getMessage());
-        }
+        return $this->data->offsetGet($offset);
     }
 
+    /**
+     * Set offset.
+     *
+     * Because Sequence is immutable, this operation is not allowed. Use set() instead.
+     *
+     * @param int $offset  Numeric offset
+     * @param mixed $value Value
+     */
     public function offsetSet($offset, $value)
     {
-        // TODO: Implement offsetSet() method.
+        throw new RuntimeException(sprintf(
+            'Cannot set value on %s object.',
+            __CLASS__
+        ));
     }
 
+    /**
+     * Set value at given offset.
+     *
+     * Creates a copy of the sequence, setting the specified offset to the specified value (on the copy), and returns it.
+     *
+     * @param mixed $offset The index offset to set
+     * @param mixed $value  The value to set it to
+     *
+     * @return $this
+     */
+    public function set($offset, $value)
+    {
+        $arr = $this->getData();
+        $arr[$offset] = $value;
+        return new static($arr);
+    }
+
+    /**
+     *
+     * Because Sequence is immutable, this operation is not allowed. Use set() instead.
+     *
+     * @param int $offset  Numeric offset
+     */
     public function offsetUnset($offset)
     {
-        // TODO: Implement offsetUnset() method.
+        throw new RuntimeException(sprintf(
+            'Cannot unset value on %s object.',
+            __CLASS__
+        ));
     }
 
+    /**
+     * Get new sequence without specified indices.
+     *
+     * Creates a copy of the sequence, unsetting the specified offset(s) (on the copy), and returns it.
+     *
+     * @param int|string|array The offset, range, or set of indices to remove.
+     *
+     * @return $this
+     */
+    public function except($offset)
+    {
+        if (!is_array($offset)) {
+            if (is_string($offset) && Str::contains($offset, static::SLICE_DELIM)) {
+                list($start, $length) = get_range_start_end($offset, $this->count());
+                $indices = array_slice($this->getData(), $start, $length, true);
+            } else {
+                $indices = array_flip([$offset]);
+            }
+        } else {
+            $indices = array_flip($offset);
+        }
+        return $this->diffKeys($indices);
+    }
+
+    /**
+     * Is there a value at specified offset?
+     *
+     * Returns true of there is an item in the collection at the specified numerical offset.
+     *
+     * @param mixed $offset The index offset to check
+     *
+     * @return bool
+     */
     public function offsetExists($offset)
     {
         return $this->data->offsetExists($offset);
     }
 
     /**
+     * Get diff by index.
+     *
+     * @param array|Traversable$data The array/traversable
+     *
+     * @return static
+     */
+    public function diffKeys($data)
+    {
+        if (!is_array($data)) {
+            $data = to_array($data);
+        }
+        return new static(array_diff_key(
+            $this->getData(),
+            $data
+        ));
+    }
+
+    /**
+     * Get diff by value.
+     *
+     * @param array|Traversable$data The array/traversable
+     *
+     * @return static
+     */
+    public function diff($data)
+    {
+        if (!is_array($data)) {
+            $data = to_array($data);
+        }
+        return new static(array_diff(
+            $this->getData(),
+            $data
+        ));
+    }
+
+    /**
      * Prepend item to collection.
+     *
      * Prepend an item to this collection (in place).
+     *
      * @param mixed $item Item to prepend to collection
+     *
      * @return Sequence
      */
      public function prepend($item)
@@ -265,8 +358,11 @@ class Sequence implements
 
     /**
      * Append item to collection.
+     *
      * Append an item to this collection (in place).
+     *
      * @param mixed $item Item to append to collection
+     *
      * @return Sequence
      */
     public function append($item)
@@ -276,6 +372,14 @@ class Sequence implements
         return new static($arr);
     }
 
+    /**
+     * Fold (reduce) sequence into a single value.
+     *
+     * @param callable $funk    A callback function
+     * @param mixed    $initial Initial value for accumulator
+     *
+     * @return mixed
+     */
     public function fold(callable $funk, $initial = null)
     {
         $carry = $initial;
@@ -287,6 +391,7 @@ class Sequence implements
 
     /**
      * Is collection empty?
+     *
      * You may optionally pass in a callback which will determine if each of the items within the collection are empty.
      * If all items in the collection are empty according to this callback, this method will return true.
      *
@@ -306,8 +411,11 @@ class Sequence implements
 
     /**
      * Pipe collection through callback.
+     *
      * Passes entire collection to provided callback and returns the result.
+     *
      * @param callable $funk The callback funkshun
+     *
      * @return mixed
      */
     public function pipe(callable $funk)
@@ -317,9 +425,12 @@ class Sequence implements
 
     /**
      * Does every item return true?
+     *
      * If callback is provided, this method will return true if all items in collection cause callback to return true.
      * Otherwise, it will return true if all items in the collection have a truthy value.
+     *
      * @param callable|null $funk The callback
+     *
      * @return bool
      */
     public function every(callable $funk = null)
@@ -337,8 +448,11 @@ class Sequence implements
 
     /**
      * Does every item return false?
+     *
      * This method is the exact opposite of "all".
+     *
      * @param callable|null $funk The callback
+     *
      * @return bool
      */
     public function none(callable $funk = null)
@@ -354,6 +468,17 @@ class Sequence implements
         }, false);
     }
 
+    /**
+     * Get first item.
+     *
+     * Retrieve the first item in the collection or, if a callback is provided, return the first item that, when passed
+     * to the callback, returns true.
+     *
+     * @param callable|null $funk    The callback function
+     * @param null          $default The default value
+     *
+     * @return mixed
+     */
     public function first(callable $funk = null, $default = null)
     {
         if (is_null($funk) && $this->count()) {
@@ -367,11 +492,27 @@ class Sequence implements
         return $default;
     }
 
+    /**
+     * Get last item.
+     *
+     * Retrieve the last item in the collection or, if a callback is provided, return the last item that, when passed
+     * to the callback, returns true.
+     *
+     * @param callable|null $funk    The callback function
+     * @param null          $default The default value
+     *
+     * @return mixed
+     */
     public function last(callable $funk = null, $default = null)
     {
         return $this->reverse()->first($funk, $default);
     }
 
+    /**
+     * Get sequence in reverse order.
+     *
+     * @return Sequenceable
+     */
     public function reverse()
     {
         return new static(array_reverse($this->getData()));
@@ -379,64 +520,25 @@ class Sequence implements
 
     /**
      * Return new sequence with the first item "bumped" off.
+     *
      * @return Sequenceable
      */
     public function bump()
     {
-        // TODO: Implement bump() method.
+        $arr = $this->getData();
+        array_shift($arr);
+        return new static($arr);
     }
 
     /**
      * Return new sequence with the last item "dropped" off.
+     *
      * @return Sequenceable
      */
     public function drop()
     {
-        // TODO: Implement drop() method.
-    }
-
-    /**
-     * Get collection as a sequence.
-     * @return array
-     */
-    public function toSeq()
-    {
-        // TODO: Implement toSeq() method.
-    }
-
-    /**
-     * Get collection as a dictionary.
-     * @return array
-     */
-    public function toDict()
-    {
-        // TODO: Implement toDict() method.
-    }
-
-    /**
-     * Get collection as a set.
-     * @return array
-     */
-    public function toSet()
-    {
-        // TODO: Implement toSet() method.
-    }
-
-    /**
-     * Get collection as a map.
-     * @return array
-     */
-    public function toMap()
-    {
-        // TODO: Implement toMap() method.
-    }
-
-    /**
-     * Get collection as a list.
-     * @return array
-     */
-    public function toList()
-    {
-        // TODO: Implement toList() method.
+        $arr = $this->getData();
+        array_pop($arr);
+        return new static($arr);
     }
 }

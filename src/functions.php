@@ -10,10 +10,13 @@
 namespace Noz;
 
 use Closure;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Iterator;
 use Noz\Collection\Collection;
+use Noz\Collection\Sequence;
 use Noz\Contracts\CollectionInterface;
+use RuntimeException;
 use Traversable;
 
 /**
@@ -180,6 +183,31 @@ function to_array($data, $strict = true)
     return [$data];
 }
 
+function get_range_start_end($range, $count)
+{
+    if (Str::contains($range, Sequence::SLICE_DELIM)) {
+        // return slice as a new sequence
+        list($start, $end) = explode(Sequence::SLICE_DELIM, $range, 2);
+        if ($start == '') {
+            $start = 0;
+        }
+        if ($end == '') {
+            $end = $count - 1;
+        }
+        if (is_numeric($start) && is_numeric($end)) {
+            if ($start < 0) {
+                $start = $count - abs($start);
+            }
+            if ($end < 0) {
+                $end = $count - abs($end);
+            }
+            $length = $end - $start + 1;
+            return [$start, $length];
+        }
+    }
+    throw new RuntimeException('Invalid index range/offset.');
+}
+
 /**
  * Get data type.
  *
@@ -213,8 +241,6 @@ function typeof($data, $meta = true/*, $returnType = 'string'*/)
     }
     return $type;
 }
-
-
 
 // BEGIN debug/testing functions
 

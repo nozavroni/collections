@@ -13,7 +13,7 @@ namespace NozTest\Collection;
 use ArrayIterator;
 use Illuminate\Support\Str;
 use Noz\Collection\Sequence;
-use OutOfRangeException;
+use RuntimeException;
 
 use function Noz\is_traversable;
 use stdClass;
@@ -48,6 +48,44 @@ class SequenceTest extends AbstractCollectionTest
             'nine'
         ]);
         $this->assertEquals(8, $seq->count());
+    }
+
+    public function testSetValueReturnsNewSequence()
+    {
+        $seq = new Sequence($exp = ['a','b','c','d','e','f']);
+        $this->watchImmutable($seq);
+        $seq2 = $seq->set(0, 'g');
+        $this->assertEquals('g', $seq2->offsetGet(0));
+        $this->assertEquals(['g','b','c','d','e','f'], $seq2->toArray());
+        $seq2 = $seq->set(25, 'twentyfive');
+        $this->assertEquals(['a','b','c','d','e','f','twentyfive'], $seq2->toArray());
+        $this->assertImmutable($seq);
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testOffsetSetThrowsException()
+    {
+        $seq = new Sequence([1,2,3]);
+        $seq[1] = 10;
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testOffsetUnsetThrowsException()
+    {
+        $seq = new Sequence([1,2,3]);
+        unset($seq[1]);
+    }
+
+    public function testExceptReturnsNewSequenceExceptIndexes()
+    {
+        $seq = new Sequence(['a','b','c','d','e']);
+        $this->assertEquals(['a','c','d','e'], $seq->except(1)->toArray());
+        $this->assertEquals(['a','c','e'], $seq->except([1,3])->toArray());
+        $this->assertEquals(['a','e'], $seq->except('1:3')->toArray());
     }
 
     public function testInvokableAllowsStandardIndexing()
@@ -161,7 +199,7 @@ class SequenceTest extends AbstractCollectionTest
     }
 
     /**
-     * @expectedException OutOfRangeException
+     * @expectedException RuntimeException
      * @expectedExceptionMessage Index invalid or out of range
      */
     public function testSeqArrayAccessThrowsExceptionForOutOfRangeIndex()
@@ -171,7 +209,7 @@ class SequenceTest extends AbstractCollectionTest
     }
 
     /**
-     * @expectedException OutOfRangeException
+     * @expectedException RuntimeException
      * @expectedExceptionMessage Index invalid or out of range
      */
     public function testSeqArrayAccessThrowsExceptionForInvalidIndex()
@@ -181,7 +219,7 @@ class SequenceTest extends AbstractCollectionTest
     }
 
     /**
-     * @expectedException OutOfRangeException
+     * @expectedException RuntimeException
      * @expectedExceptionMessage Index invalid or out of range
      */
     public function testSeqArrayAccessUsingSquareBracketsThrowsExceptionForInvalidIndex()
@@ -379,6 +417,24 @@ class SequenceTest extends AbstractCollectionTest
         $this->assertEquals(
             ['pqr','mno','jkl','ghi','def','abc'],
             $seq->reverse()->toArray()
+        );
+    }
+
+    public function testBumpReturnsSequenceWithFirstItemRemoved()
+    {
+        $seq = new Sequence(['abc','def','ghi','jkl','mno', 'pqr']);
+        $this->assertEquals(
+            ['def','ghi','jkl','mno', 'pqr'],
+            $seq->bump()->toArray()
+        );
+    }
+
+    public function testDropReturnsSequenceWithLastItemRemoved()
+    {
+        $seq = new Sequence(['abc','def','ghi','jkl','mno', 'pqr']);
+        $this->assertEquals(
+            ['abc','def','ghi','jkl','mno'],
+            $seq->drop()->toArray()
         );
     }
 }
