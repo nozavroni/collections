@@ -10,8 +10,13 @@
  */
 namespace NozTest\Collection;
 
+use ArrayIterator;
+use Illuminate\Support\Str;
 use Noz\Collection\Sequence;
 use OutOfRangeException;
+
+use function Noz\is_traversable;
+use stdClass;
 
 class SequenceTest extends AbstractCollectionTest
 {
@@ -240,6 +245,117 @@ class SequenceTest extends AbstractCollectionTest
             ]
             , $seq[':-5'], "String works as slice arguments.");
         $this->assertEquals($exp, $seq[':']);
+
+    }
+
+    public function testIsEmptyReturnsTrueForEmptySequence()
+    {
+        $seq = new Sequence();
+        $this->assertTrue($seq->isEmpty());
+    }
+
+    public function testIsEmptyReturnsTrueForCallbackThatReturnsTrueForAllItemsInSequence()
+    {
+        $seq = new Sequence([
+            [],
+            0,
+            ['', 0, null],
+            null,
+            new Sequence(),
+            new ArrayIterator([0,0,0,0,null])
+        ]);
+        $this->assertTrue($seq->isEmpty(function($val) {
+            if (is_traversable($val)) {
+                $val = array_filter(\Noz\to_array($val));
+            }
+
+            return empty($val);
+        }));
+    }
+
+    public function testPipeAcceptsFunctionThatAcceptsSequence()
+    {
+        $seq = new Sequence(['a','b','c','d','e','f']);
+        $this->assertEquals('a,b,c,d,e,f', $seq->pipe(function(Sequence $sequence) {
+            return implode(',', $sequence->toArray());
+        }));
+    }
+
+    public function testEveryReturnsTrueIfEveryItemInCollectionHasTruthyValue()
+    {
+        $seq = new Sequence([1,true,'false',new stdClass,[1]]);
+        $this->assertTrue($seq->every());
+        $seq = new Sequence([1,true,'false',new stdClass,[]]);
+        $this->assertFalse($seq->every());
+        $seq = new Sequence([1,true,'false',null,[1]]);
+        $this->assertFalse($seq->every());
+        $seq = new Sequence([1,true,'',new stdClass,[1]]);
+        $this->assertFalse($seq->every());
+        $seq = new Sequence([1,false,'false',new stdClass,[1]]);
+        $this->assertFalse($seq->every());
+        $seq = new Sequence([0,true,'false',new stdClass,[1]]);
+        $this->assertFalse($seq->every());
+    }
+
+    public function testEveryReturnsTrueIfEveryItemInCollectionReturnsTrueForCallback()
+    {
+        $seq = new Sequence(['abc','def','ghi','jkl','mno']);
+        $this->assertTrue($seq->every(function($val, $key) {
+            return strlen($val) == 3;
+        }));
+        $seq = new Sequence(['abc','def','ghi','jkl','mno','pqr','stu','vxy','z']);
+        $this->assertFalse($seq->every(function($val, $key) {
+            return strlen($val) == 3;
+        }));
+        $seq = new Sequence(['abc','d3f','ghi','jkl','mno', 'pqr', '345']);
+        $this->assertFalse($seq->every(function($val, $key) {
+            return !is_numeric($val);
+        }));
+        $seq = new Sequence(['abc','123','def','456','ghi','789']);
+        $this->assertTrue($seq->every(function($val, $key) {
+            return $key % 2 == 0 ?
+                !is_numeric($val):
+                is_numeric($val);
+        }));
+    }
+
+    public function testNoneReturnsTrueIfNoItemsCauseCallbackToReturnTrue()
+    {
+        $seq = new Sequence(['abc','def','ghi','jkl','mno', 'pqr']);
+        $this->assertTrue($seq->none(function($val, $key) {
+            return Str::contains($val, str_split('01234'));
+        }));
+        $this->assertFalse($seq->none(function($val, $key) {
+            return Str::contains($val, str_split('01234a'));
+        }));
+        $seq = new Sequence(['abc','def','ghi','jkl','mno', 'pqr']);
+        $this->assertTrue($seq->none(function($val, $key) {
+            return Str::startsWith($val, 'abd');
+        }));
+        $this->assertFalse($seq->none(function($val, $key) {
+            return Str::startsWith($val, 'ab');
+        }));
+        $this->assertFalse($seq->none(function($val, $key) {
+            return Str::length($val) == 3;
+        }));
+        $this->assertTrue($seq->none(function($val, $key) {
+            return Str::length($val) != 3;
+        }));
+    }
+
+    public function testFirstReturnsFirstItemInSequenceOrDefault()
+    {
+        $seq = new Sequence(['abc','def','ghi','jkl','mno', 'pqr']);
+        $this->assertEquals('abc', $seq->first(), 'Ensure first item is returned if no callback provided.');
+        $seq = new Sequence();
+        $this->assertEquals('default', $seq->first(null, 'default'), 'Ensure default is returned if sequence is empty.');
+        $seq = new Sequence(['abc','def','ghi','jkl','mno', 'pqr']);
+        $this->assertEquals('ghi', $seq->first(function($val, $key) {
+            return Str::contains($val, 'h');
+        }), 'Ensure first matching item is returned if callback provided.');
+        $this->assertEquals('default', $seq->first(function($val, $key) {
+            return Str::contains($val, 'z');
+        }, 'default'), 'Ensure default is returned if callback provided and nothing is found.');
 
     }
 }

@@ -10,9 +10,11 @@
 namespace Noz\Collection;
 
 use BadMethodCallException;
+use Noz\Traits\IsArrayable;
 use OutOfRangeException;
 use RuntimeException;
 
+use Iterator;
 use ArrayAccess;
 use Countable;
 use SplFixedArray;
@@ -33,14 +35,15 @@ use function
     Noz\is_traversable;
 
 class Sequence implements
-    ArrayAccess,
     Sequenceable,
+    ArrayAccess,
     Immutable,
     Countable,
     Arrayable,
-    Invokable
+    Invokable,
+    Iterator
 {
-    use IsImmutable, IsContainer;
+    use IsImmutable, IsContainer, IsArrayable;
 
     /**
      * Delimiter used to fetch slices.
@@ -59,47 +62,12 @@ class Sequence implements
      *
      * @param array|Traversable $data The data to sequence
      */
-    public function __construct($data)
+    public function __construct($data = null)
     {
-        $this->setData($data);
-    }
-
-    private function setData($data)
-    {
-        if (!is_traversable($data)) {
-            // @todo Maybe create an ImmutableException for this?
-            throw new BadMethodCallException(sprintf(
-                'Cannot %s, %s is immutable.',
-                __METHOD__,
-                __CLASS__
-            ));
+        if (is_null($data)) {
+            $data = [];
         }
-        $data = array_values(to_array($data));
-        $this->data = SplFixedArray::fromArray($data);
-    }
-
-    protected function getData()
-    {
-        return $this->data->toArray();
-    }
-
-    /**
-     * Count elements of an object
-     * @link  http://php.net/manual/en/countable.count.php
-     * @return int The custom count as an integer.
-     * </p>
-     * <p>
-     * The return value is cast to an integer.
-     * @since 5.1.0
-     */
-    public function count()
-    {
-        return $this->data->count();
-    }
-
-    public function toArray()
-    {
-        return $this->getData();
+        $this->setData($data);
     }
 
     /**
@@ -147,6 +115,109 @@ class Sequence implements
             }
         }
         return $this->toArray();
+    }
+
+    /**
+     * Set data in sequence.
+     *
+     * Any array or traversable structure passed in will be re-indexed numerically.
+     *
+     * @param Traversable|array $data The sequence data
+     */
+    private function setData($data)
+    {
+        if (!is_traversable($data)) {
+            // @todo Maybe create an ImmutableException for this?
+            throw new BadMethodCallException(sprintf(
+                'Cannot %s, %s is immutable.',
+                __METHOD__,
+                __CLASS__
+            ));
+        }
+        $data = array_values(to_array($data));
+        $this->data = SplFixedArray::fromArray($data);
+    }
+
+    /**
+     * Get data.
+     *
+     * Get the underlying data array.
+     *
+     * @return array
+     */
+    protected function getData()
+    {
+        return $this->data->toArray();
+    }
+
+    /**
+     * Return the current element
+     * @link  http://php.net/manual/en/iterator.current.php
+     * @return mixed Can return any type.
+     * @since 5.0.0
+     */
+    public function current()
+    {
+        return $this->data->current();
+    }
+
+    /**
+     * Move forward to next element
+     * @link  http://php.net/manual/en/iterator.next.php
+     * @return void Any returned value is ignored.
+     * @since 5.0.0
+     */
+    public function next()
+    {
+        $this->data->next();
+    }
+
+    /**
+     * Return the key of the current element
+     * @link  http://php.net/manual/en/iterator.key.php
+     * @return mixed scalar on success, or null on failure.
+     * @since 5.0.0
+     */
+    public function key()
+    {
+        return $this->data->key();
+    }
+
+    /**
+     * Checks if current position is valid
+     * @link  http://php.net/manual/en/iterator.valid.php
+     * @return boolean The return value will be casted to boolean and then evaluated.
+     * Returns true on success or false on failure.
+     * @since 5.0.0
+     */
+    public function valid()
+    {
+        return $this->data->valid();
+    }
+
+    /**
+     * Rewind the Iterator to the first element
+     * @link  http://php.net/manual/en/iterator.rewind.php
+     * @return void Any returned value is ignored.
+     * @since 5.0.0
+     */
+    public function rewind()
+    {
+        $this->data->rewind();
+    }
+
+    /**
+     * Count elements of an object
+     * @link  http://php.net/manual/en/countable.count.php
+     * @return int The custom count as an integer.
+     * </p>
+     * <p>
+     * The return value is cast to an integer.
+     * @since 5.1.0
+     */
+    public function count()
+    {
+        return $this->data->count();
     }
 
     public function offsetGet($offset)
@@ -225,12 +296,12 @@ class Sequence implements
      */
     public function isEmpty(callable $funk = null)
     {
-        if (is_callable($funk)) {
+        if (!is_null($funk)) {
             return $this->fold(function ($carry, $val) use ($funk) {
                 return $carry && $funk($val);
-            });
+            }, true);
         }
-        return empty($this->data);
+        return empty($this->data->toArray());
     }
 
     /**
@@ -272,20 +343,28 @@ class Sequence implements
      */
     public function none(callable $funk = null)
     {
-        return $this->fold(function($carry, $val, $key) use ($funk) {
+        return !$this->fold(function($carry, $val, $key) use ($funk) {
             if ($carry) {
-                return false;
+                return true;
             }
             if (!is_null($funk)) {
-                return !$funk($val, $key);
+                return $funk($val, $key);
             }
-            return !((bool) $val);
+            return (bool) $val;
         }, false);
     }
 
     public function first(callable $funk = null, $default = null)
     {
-
+        if (is_null($funk) && $this->count()) {
+            return $this[0];
+        }
+        foreach ($this as $key => $val) {
+            if ($funk($val, $key)) {
+                return $val;
+            }
+        }
+        return $default;
     }
 
     public function last(callable $funk = null, $default = null)

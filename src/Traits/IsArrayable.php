@@ -25,7 +25,7 @@ trait IsArrayable
     public function toArray()
     {
         $arr = [];
-        foreach ($this as $index => $value) {
+        foreach ($this->getData() as $index => $value) {
             if (is_arrayable($value)) {
                 $value = to_array($value);
             }
@@ -34,5 +34,15 @@ trait IsArrayable
 
         return $arr;
     }
+
+    /**
+     * Get internal data array.
+     *
+     * Because collections are immutable, direct access to the underlying data array is discouraged, even from within
+     * the collection class itself. Use $this->getData() instead.
+
+     * @return array
+     */
+    abstract protected function getData();
 
 }
