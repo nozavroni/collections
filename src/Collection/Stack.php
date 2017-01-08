@@ -12,7 +12,6 @@ namespace Noz\Collection;
 use BadMethodCallException;
 
 use Countable;
-use Noz\Contracts\Structure\Listable;
 use Traversable;
 use SplFixedArray;
 
