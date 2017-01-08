@@ -102,7 +102,7 @@ class Sequence implements
             }
             if (is_numeric($offset)) {
                 if ($offset < 0) {
-                    $offset = $count - abs($offset);
+                    $offset = $count + $offset;
                 }
                 return $this[$offset];
             }
@@ -122,9 +122,8 @@ class Sequence implements
         if (!is_traversable($data)) {
             // @todo Maybe create an ImmutableException for this?
             throw new BadMethodCallException(sprintf(
-                'Cannot %s, %s is immutable.',
-                __METHOD__,
-                __CLASS__
+                'Forbidden method call: %s',
+                __METHOD__
             ));
         }
         $data = array_values(to_array($data));

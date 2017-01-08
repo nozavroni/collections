@@ -20,9 +20,13 @@ use function
     Noz\is_arrayable,
     Noz\to_array,
     Noz\typeof,
+    Noz\get_range_start_end,
+    Noz\normalize_offset,
     Noz\_;
 use Noz\Collection\Collection;
 use Noz\Contracts\CollectionInterface;
+use function Noz\get_count;
+use RuntimeException;
 use SplObjectStorage;
 use stdClass;
 
@@ -202,5 +206,91 @@ class FunctionsTest extends UnitTestCase
         };
         // kinda verbose, but this is the best it's going to get for currying in PHP...
         $this->assertEquals('foo -> bar -> baz', _(_(_($arrows, 'foo'), 'bar'), 'baz'));
+    }
+
+    public function testGetCount()
+    {
+        $stubNeg5 = $this->getMockBuilder('stdClass')
+                      ->setMethods(['__toString'])
+                      ->getMock();
+        $stubNeg5->method('__toString')
+                 ->willReturn('-5');
+
+        $this->assertSame(-5, get_count($stubNeg5));
+
+        $stub10 = [1,2,3,4,5,6,7,8,9,10];
+
+        $this->assertSame(10, get_count($stub10));
+
+        $stub10 = $this->getMockBuilder(Collection::class)
+                      ->setMethods(['count'])
+                      ->getMock();
+        $stub10->method('count')
+              ->willReturn('10');
+
+        $this->assertSame(10, get_count($stub10));
+    }
+
+    public function testNormalizeOffset()
+    {
+        $stub5 = $this->getMockBuilder('stdClass')
+                      ->setMethods(['__toString'])
+                      ->getMock();
+        $stub5->method('__toString')
+              ->willReturn('5');
+        $stub10 = $this->getMockBuilder('stdClass')
+                       ->setMethods(['__toString'])
+                       ->getMock();
+        $stub10->method('__toString')
+               ->willReturn('10');
+        $stubNeg3 = $this->getMockBuilder('stdClass')
+                         ->setMethods(['__toString'])
+                         ->getMock();
+        $stubNeg3->method('__toString')
+                 ->willReturn('-3');
+
+        $this->assertEquals(0, normalize_offset(0));
+        $this->assertEquals(2, normalize_offset(2));
+        $this->assertEquals(6, normalize_offset(-4, 10));
+        $this->assertEquals(4, normalize_offset('-6', 10));
+        $this->assertEquals(5, normalize_offset($stub5));
+        $this->assertEquals(2, normalize_offset($stubNeg3, $stub5));
+        $this->assertEquals(10, normalize_offset($stub10, 20));
+    }
+
+    public function testGetRangeStartEnd()
+    {
+        $stub5 = $this->getMockBuilder('stdClass')
+                      ->setMethods(['__toString'])
+                      ->getMock();
+        $stub5->method('__toString')
+              ->willReturn('5');
+        $stub10 = $this->getMockBuilder('stdClass')
+                       ->setMethods(['__toString'])
+                       ->getMock();
+        $stub10->method('__toString')
+               ->willReturn('10');
+        $stubNeg3 = $this->getMockBuilder('stdClass')
+                         ->setMethods(['__toString'])
+                         ->getMock();
+        $stubNeg3->method('__toString')
+                 ->willReturn('-3');
+
+        $this->assertEquals([3, 4], get_range_start_end('3:6'));
+        $this->assertEquals([0, 7], get_range_start_end(':6'));
+        $this->assertEquals([5, 5], get_range_start_end('5:', 10));
+        $this->assertEquals([0, 10], get_range_start_end(':', 10));
+        $this->assertEquals([0, 9], get_range_start_end(':-2', 10));
+        $this->assertEquals([0, 9], get_range_start_end(':-2', $stub10));
+        $this->assertEquals([5, 4], get_range_start_end('5:-2', $stub10));
+        $this->assertEquals([3,6], get_range_start_end('-7:-2', $stub10));
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testNormalizeOffsetThrowsExceptionForInvalidOffset()
+    {
+        normalize_offset('chooochooo');
     }
 }

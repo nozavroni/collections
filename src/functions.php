@@ -183,8 +183,112 @@ function to_array($data, $strict = true)
     return [$data];
 }
 
-function get_range_start_end($range, $count)
+/**
+ * Get object count.
+ *
+ * This function will accept any data and attempt to return its count.
+ *
+ * @param mixed $data The data to count
+ *
+ * @return int
+ */
+function get_count($data)
 {
+    if (is_null($data)) {
+        return $data;
+    }
+
+    if (is_array($data)) {
+        return count($data);
+    }
+
+    if (is_numeric($data)) {
+        return (int) $data;
+    }
+
+    if ($data === '') {
+        return 0;
+    }
+
+    if ($data === 0) {
+        return 0;
+    }
+
+    if (is_object($data)) {
+        if (method_exists($data, 'count')) {
+            $count = $data->count();
+        } elseif (method_exists($data, '__toString')) {
+            $count = (string) $data;
+            $count = (int) $count;
+        } elseif (is_traversable($data)) {
+            $count = 0;
+            foreach ($data as $item) {
+                $count++;
+            }
+            return (int) $count;
+        }
+        if (isset($count)) {
+            return (int) $count;
+        }
+    }
+
+    if (is_numeric($data)) {
+        return (int) $data;
+    }
+
+    throw new RuntimeException('Cannot convert to int.');
+}
+
+/**
+ * Normalize offset to positive integer.
+ *
+ * Provided with the requested offset, whether it be a string, an integer (positive or negative), or some type of
+ * object, this function will normalize it to a positive integer offset or, failing that, it will throw an exception.
+ * A negative offset will require either the traversable that is being indexed or its total count in order to normalize
+
+ * @param int|mixed $offset The offset to normalize
+ * @param int|array|traversable $count  Either the traversable count, or the traversable itself.
+
+ * @return int
+
+ * @throws RuntimeException If offset cannot be normalized
+ * @throws InvalidArgumentException If offset is negative and count is not provided
+ */
+function normalize_offset($offset, $count = null)
+{
+    if (is_object($offset) && method_exists($offset, '__toString')) {
+        $offset = (string) $offset;
+    }
+
+    if (!is_numeric($offset)) {
+        throw new RuntimeException('Invalid offset.');
+    }
+
+    $count = get_count($count);
+
+    if ($offset < 0) {
+        if (is_null($count)) {
+            throw new InvalidArgumentException('Cannot normalize negative offset without a total count.');
+        }
+        $offset += $count;
+    }
+    return (int) $offset;
+}
+
+/**
+ * Get range start and end from string.
+ *
+ * Provided a string in the format of "start:end" and the total items in a collection, this function will return an
+ * array in the form of [start, length].
+ *
+ * @param string $range The range to get (in the format of "start:end"
+ * @param int|array|traversable $count  Either the traversable count, or the traversable itself.
+ *
+ * @return array [start, length]
+ */
+function get_range_start_end($range, $count = null)
+{
+    $count = get_count($count);
     if (Str::contains($range, Sequence::SLICE_DELIM)) {
         // return slice as a new sequence
         list($start, $end) = explode(Sequence::SLICE_DELIM, $range, 2);
@@ -194,14 +298,10 @@ function get_range_start_end($range, $count)
         if ($end == '') {
             $end = $count - 1;
         }
-        if (is_numeric($start) && is_numeric($end)) {
-            if ($start < 0) {
-                $start = $count - abs($start);
-            }
-            if ($end < 0) {
-                $end = $count - abs($end);
-            }
-            $length = $end - $start + 1;
+        $start = normalize_offset($start, $count);
+        $end = normalize_offset($end, $count) + 1;
+        if ($end > $start) {
+            $length = $end - $start;
             return [$start, $length];
         }
     }
