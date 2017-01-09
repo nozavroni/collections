@@ -31,7 +31,7 @@ use function Noz\is_traversable;
  *
  * A queue is a Linked List in FIFO (first-in, first-out) configuration.
  */
-class Queue extends Lst implements
+class Queue extends LList implements
     Listable,
     Immutable,
     Countable,

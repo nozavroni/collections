@@ -30,7 +30,7 @@ use function Noz\is_traversable;
  *
  * A stack is a Linked List in LIFO (last-in, first-out) configuration.
  */
-class Stack extends Lst implements
+class Stack extends LList implements
     Listable,
     Immutable,
     Countable,

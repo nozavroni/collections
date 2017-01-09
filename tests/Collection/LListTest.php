@@ -10,28 +10,13 @@
  */
 namespace NozTest\Collection;
 
-use ArrayAccess;
-use Closure;
-use Countable;
-use Illuminate\Support\Str;
-use \Iterator;
-use \ArrayIterator;
-use Noz\Collection\Collection;
-use Noz\Collection\Lst;
-use Noz\Collection\Sequence;
-use Noz\Contracts\CollectionInterface;
+use Noz\Collection\LList;
 
-use function Noz\invoke;
-use function
-    Noz\is_traversable,
-    Noz\collect,
-    Noz\dd;
-
-class LstTest extends AbstractCollectionTest
+class LListTest extends AbstractCollectionTest
 {
-    public function testCreateSequence()
+    public function testCreateLListReindexesNumerically()
     {
-        $list = new Lst($exp = [
+        $list = new LList($exp = [
             10 => 'goo',
             15,
             20 => 'foo',

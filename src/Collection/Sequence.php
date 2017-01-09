@@ -32,6 +32,7 @@ use Noz\Traits\IsImmutable;
 use function
     Noz\to_array,
     Noz\is_traversable,
+    Noz\normalize_offset,
     Noz\get_range_start_end;
 
 /**
@@ -82,29 +83,37 @@ class Sequence implements
 
     /**
      * Invoke sequence.
-     *
+
      * A sequence is invokable as if it were a function. This allows some pretty useful functionality such as negative
-     * indexing, sub-sequence selection, etc.
-     *
-     * @param int $offset The offset to return
-     *
+     * indexing, sub-sequence selection, etc. Basically, any way you invoke a sequence, you're going to get back either
+     * a single value from the sequence or a subset of it.
+
+     * @internal param mixed $funk Either a numerical offset (positive or negative), a range string (start:end), or a
+     * callback to be used as a filter.
+
      * @return mixed
-     *
+
      * @todo Put all the slice logic into a helper function or several
      */
-    public function __invoke($offset = null)
+    public function __invoke()
     {
-        if (func_num_args()) {
+        $args = func_get_args();
+        if ($argc = count($args)) {
+            $offset = array_shift($args);
             $count = $this->count();
-            if (Str::contains($offset, static::SLICE_DELIM)) {
-                list($start, $length) = get_range_start_end($offset ,$count);
-                return new static(array_slice($this->getData(), $start, $length));
+            if (count($args)) {
+                // if there are more args...
+                $length =  array_shift($args);
             }
-            if (is_numeric($offset)) {
-                if ($offset < 0) {
-                    $offset = $count + $offset;
-                }
-                return $this[$offset];
+            if (Str::contains($offset, static::SLICE_DELIM)) {
+                list($start, $length) = get_range_start_end($offset, $count);
+            } else {
+                $start = normalize_offset($offset, $count);
+            }
+            if (isset($length)) {
+                return new static(array_slice($this->getData(), $start, $length));
+            } else {
+                return $this[$start];
             }
         }
         return $this->toArray();
