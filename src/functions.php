@@ -17,7 +17,15 @@ use Noz\Collection\Collection;
 use Noz\Collection\Sequence;
 use Noz\Contracts\CollectionInterface;
 use RuntimeException;
+use Serializable;
 use Traversable;
+
+use Symfony\Component\Serializer\Serializer;
+use Symfony\Component\Serializer\Encoder\XmlEncoder;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Encoder\YamlEncoder;
+use Symfony\Component\Serializer\Encoder\CsvEncoder;
+use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 
 /**
  * Collection factory.
@@ -118,14 +126,20 @@ function is_arrayable($data)
  *
  * @todo I'm not sure if this function is necessary or not. Does iterator_to_array do everything this can do?
  *
- * @param Traversable $data Traversable data
+ * @param Traversable $data      Traversable data
+ * @param bool        $recursive Apply recursively?
  *
  * @return array
  */
-function traversable_to_array(Traversable $data)
+function traversable_to_array(Traversable $data, $recursive = true)
 {
     $arr = [];
     foreach ($data as $key => $val) {
+        if ($recursive) {
+            if (is_traversable($val)) {
+                $val = traversable_to_array($val);
+            }
+        }
         $arr[$key] = $val;
     }
     return $arr;

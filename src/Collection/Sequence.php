@@ -10,12 +10,12 @@
 namespace Noz\Collection;
 
 use BadMethodCallException;
-use Noz\Traits\IsArrayable;
 use RuntimeException;
 
 use Iterator;
 use ArrayAccess;
 use Countable;
+use Serializable;
 use SplFixedArray;
 use Traversable;
 
@@ -28,6 +28,8 @@ use Noz\Contracts\Structure\Sequenceable;
 
 use Noz\Traits\IsContainer;
 use Noz\Traits\IsImmutable;
+use Noz\Traits\IsArrayable;
+use Noz\Traits\IsSerializable;
 
 use function
     Noz\to_array,
@@ -52,9 +54,13 @@ class Sequence implements
     Countable,
     Arrayable,
     Invokable,
+    Serializable,
     Iterator
 {
-    use IsImmutable, IsContainer, IsArrayable;
+    use IsImmutable,
+        IsContainer,
+        IsArrayable,
+        IsSerializable;
 
     /**
      * Delimiter used to fetch slices.

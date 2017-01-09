@@ -28,7 +28,7 @@ interface Sequenceable extends Collectable
     public function bump();
 
     /**
-     * Return new sequence with the last item "dropped" off.
+     * Return new sequence with the last item "dr1w22                                    opped" off.
      *
      * @return Sequenceable
      */
@@ -39,4 +39,5 @@ interface Sequenceable extends Collectable
     public function offsetSet($offset, $value);
     public function offsetUnset($offset);
     public function offsetExists($offset);
+    public function count();
 }

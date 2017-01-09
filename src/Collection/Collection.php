@@ -9,18 +9,21 @@
  */
 namespace Noz\Collection;
 
+use InvalidArgumentException;
+use OutOfBoundsException;
+
 use ArrayIterator;
 use Countable;
-use InvalidArgumentException;
 use Iterator;
+use Traversable;
+
 use Noz\Contracts\Arrayable;
 use Noz\Contracts\Invokable;
 use Noz\Contracts\CollectionInterface;
-use Noz\Traits\IsContainer;
-use OutOfBoundsException;
-use Traversable;
 
 use Noz\Traits\IsArrayable;
+use Noz\Traits\IsContainer;
+use Noz\Traits\IsSerializable;
 
 use function
     Noz\is_traversable,
@@ -51,7 +54,7 @@ class Collection implements
     Countable,
     Iterator
 {
-    use IsArrayable, IsContainer;
+    use IsArrayable, IsContainer, IsSerializable;
 
     /**
      * @var array The collection of data this object represents

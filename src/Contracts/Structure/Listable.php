@@ -9,7 +9,20 @@
  */
 namespace Noz\Contracts\Structure;
 
-interface Listable
-{
+use SplDoublyLinkedList;
 
+interface Listable extends Collectable
+{
+    public function bump();
+    public function drop();
+    public function top();
+    public function bottom();
+    public function toArray();
+
+//    /**
+//     * Get SplDoublyLinkedList.
+//     *
+//     * @return SplDoublyLinkedList
+//     */
+//    public function toDll();
 }

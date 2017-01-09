@@ -104,4 +104,7 @@ interface Collectable
      * @return array
      */
     public function toArray();
+
+    public function serialize();
+    public function unserialize($serialized);
 }

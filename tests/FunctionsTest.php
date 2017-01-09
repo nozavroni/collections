@@ -16,6 +16,7 @@ use EmptyIterator;
 use Exception;
 use InvalidArgumentException;
 use LimitIterator;
+use function Noz\coll_serialize;
 use function
     Noz\collect,
     Noz\invoke,
@@ -27,6 +28,7 @@ use function
     Noz\normalize_offset,
     Noz\_;
 use Noz\Collection\Collection;
+use Noz\Collection\Sequence;
 use Noz\Contracts\CollectionInterface;
 use Noz\Contracts\Structure\Collectable;
 use function Noz\get_count;
@@ -419,4 +421,5 @@ class FunctionsTest extends UnitTestCase
     {
         object_hash('foo','bar');
     }
+
 }

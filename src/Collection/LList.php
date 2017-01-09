@@ -91,9 +91,7 @@ class LList implements
      */
     public function __invoke()
     {
-        $list = new LList([
-            'abc','def','ghi','jkl','mno'
-        ]);
+
     }
 
     /**
