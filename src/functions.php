@@ -210,8 +210,7 @@ function get_count($data)
         if (method_exists($data, 'count')) {
             $count = $data->count();
         } elseif (method_exists($data, '__toString')) {
-            $count = (string) $data;
-            $count = (int) $count;
+            $count = (int) $data->__toString();
         } elseif (is_traversable($data)) {
             $count = 0;
             foreach ($data as $item) {

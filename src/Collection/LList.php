@@ -94,9 +94,6 @@ class LList implements
         $list = new LList([
             'abc','def','ghi','jkl','mno'
         ]);
-        $list(); // equivalent to pop()
-        $list($val); // equivalent to push()
-        $list($funk); // equivalent to
     }
 
     /**

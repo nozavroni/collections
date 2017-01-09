@@ -275,6 +275,17 @@ class FunctionsTest extends UnitTestCase
         $this->assertSame(0, get_count(''));
         $this->assertSame(0, get_count(0));
         $this->assertEquals(4, get_count(new LimitIterator(new ArrayIterator([1,2,3,4]))));
+
+        // traversable w/out __toString OR count methods
+        $traversable = $this->createPartialMock('Iterator', [
+            'current',
+            'next',
+            'valid',
+            'key',
+            'rewind'
+        ]);
+        $traversable->method('valid')->willReturn(true,true,true,true,false);
+        $this->assertEquals(4, get_count($traversable));
     }
 
     /**
