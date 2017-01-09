@@ -160,6 +160,9 @@ class FunctionsTest extends UnitTestCase
         $obj->foo = "bar";
         $obj->bar = "baz";
         $this->assertEquals(['foo' => 'bar','bar' => 'baz'], to_array($obj, false));
+
+        $arr = new LimitIterator(new ArrayIterator([1,3,4]));
+        $this->assertEquals(3, get_count($arr));
     }
 
     /**
@@ -343,6 +346,14 @@ class FunctionsTest extends UnitTestCase
     public function testGetRangeStartEndThrowsRuntimeExceptionIfCannotDetermineStartLength()
     {
         get_range_start_end('this will not work');
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testGetRangeStartEndThrowsRuntimeExceptionIfCannotDetermineStartLengthWithColon()
+    {
+        get_range_start_end('this will: not work');
     }
 
     /**

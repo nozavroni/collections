@@ -147,17 +147,17 @@ function traversable_to_array(Traversable $data)
 function to_array($data, $strict = true)
 {
     if (is_arrayable($data)) {
-        if (is_array($data)) {
-            return $data;
+        if (!is_array($data)) {
+            // this is what makes toArray() work recursively
+            // it must stay right where it is do not move it
+            if (method_exists($data, 'toArray')) {
+                $data = $data->toArray();
+            }
+            if ($data instanceof Traversable) {
+                $data = traversable_to_array($data);
+            }
         }
-        // this is what makes toArray() work recursively
-        // it must stay right where it is do not move it
-        if (method_exists($data, 'toArray')) {
-            return $data->toArray();
-        }
-        if ($data instanceof Traversable) {
-            return traversable_to_array($data);
-        }
+        return $data;
     }
     if ($strict) {
         throw new InvalidArgumentException(sprintf(
@@ -206,10 +206,6 @@ function get_count($data)
         return 0;
     }
 
-    if ($data === 0) {
-        return 0;
-    }
-
     if (is_object($data)) {
         if (method_exists($data, 'count')) {
             $count = $data->count();
@@ -221,7 +217,6 @@ function get_count($data)
             foreach ($data as $item) {
                 $count++;
             }
-            return (int) $count;
         }
         if (isset($count)) {
             return (int) $count;
