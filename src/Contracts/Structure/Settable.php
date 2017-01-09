@@ -9,7 +9,7 @@
  */
 namespace Noz\Contracts\Structure;
 
-interface Settable
+interface Settable extends Collectable
 {
 
 }

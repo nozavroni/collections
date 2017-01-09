@@ -11,5 +11,13 @@ namespace Noz\Contracts\Structure;
 
 interface Numerical
 {
-
+    public function max();
+    public function min();
+    public function avg();
+    public function mode();
+    public function med();
+    public function inc($index, $intvl = 1);
+    public function dec($index, $intvl = 1);
+    public function sum();
+    public function count();
 }

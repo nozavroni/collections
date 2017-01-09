@@ -9,7 +9,7 @@
  */
 namespace Noz\Contracts\Structure;
 
-interface Mappable extends Collectable
+interface Stackable extends Listable
 {
 
 }

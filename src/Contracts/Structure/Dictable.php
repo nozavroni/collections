@@ -9,7 +9,7 @@
  */
 namespace Noz\Contracts\Structure;
 
-interface Dictable
+interface Dictable extends Collectable
 {
 
 }

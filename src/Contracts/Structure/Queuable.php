@@ -9,7 +9,7 @@
  */
 namespace Noz\Contracts\Structure;
 
-interface Queuable
+interface Queuable extends Listable
 {
 
 }

@@ -12,28 +12,6 @@ namespace Noz\Contracts\Structure;
 interface Collectable
 {
     /**
-     * Prepend item to collection.
-     *
-     * Prepend an item to this collection (in place).
-     *
-     * @param mixed $item Item to prepend to collection
-     *
-     * @return $this
-     */
-    public function prepend($item);
-
-    /**
-     * Append item to collection.
-     *
-     * Append an item to this collection (in place).
-     *
-     * @param mixed $item Item to append to collection
-     *
-     * @return $this
-     */
-    public function append($item);
-
-    /**
      * Check that collection contains a value.
      *
      * You may optionally pass in a callable to provide your own equality test.

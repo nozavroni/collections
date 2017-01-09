@@ -12,6 +12,7 @@ namespace Noz\Collection;
 use InvalidArgumentException;
 
 use Countable;
+use Noz\Contracts\Structure\Sequenceable;
 use Traversable;
 use SplDoublyLinkedList;
 
@@ -106,6 +107,46 @@ class LList implements
     public function count()
     {
         // TODO: Implement count() method.
+    }
+
+    /**
+     * Return new sequence with the first item "bumped" off.
+     *
+     * @return Listable
+     */
+    public function bump()
+    {
+        // TODO: Implement bump() method.
+    }
+
+    /**
+     * Return new sequence with the last item "dropped" off.
+     *
+     * @return Listable
+     */
+    public function drop()
+    {
+        // TODO: Implement drop() method.
+    }
+
+    /**
+     * Get the top item of the list.
+     *
+     * @return mixed
+     */
+    public function top()
+    {
+        // TODO: Implement top() method.
+    }
+
+    /**
+     * Get the bottom item of the list.
+     *
+     * @return mixed
+     */
+    public function bottom()
+    {
+        // TODO: Implement bottom() method.
     }
 
 }

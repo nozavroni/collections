@@ -17,6 +17,28 @@ namespace Noz\Contracts\Structure;
  */
 interface Sequenceable extends Collectable
 {
+    /**
+     * Prepend item to collection.
+     *
+     * Return a new list with this item prepended to the collection.
+     *
+     * @param mixed $item Item to prepend to collection
+     *
+     * @return Listable
+     */
+    public function prepend($item);
+
+    /**
+     * Append item to collection.
+     *
+     * Return a new list with this item appended to the collection.
+     *
+     * @param mixed $item Item to append to collection
+     *
+     * @return Listable
+     */
+    public function append($item);
+
     public function first(callable $funk = null, $default = null);
     public function last(callable $funk = null, $default = null);
     public function reverse();
@@ -28,7 +50,7 @@ interface Sequenceable extends Collectable
     public function bump();
 
     /**
-     * Return new sequence with the last item "dr1w22                                    opped" off.
+     * Return new sequence with the last item "dropped" off.
      *
      * @return Sequenceable
      */
