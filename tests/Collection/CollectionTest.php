@@ -11,25 +11,436 @@
 namespace NozTest\Collection;
 
 use ArrayAccess;
+use Closure;
 use Countable;
-use Noz\Collection\CharCollection;
-use Noz\Collection\MultiCollection;
-use Noz\Collection\NumericCollection;
-use Noz\Collection\TabularCollection;
+use Illuminate\Support\Str;
 use \Iterator;
 use \ArrayIterator;
-use Noz\Collection\AbstractCollection;
 use Noz\Collection\Collection;
-//use Noz\Contract\Collectable;
-use function Noz\is_traversable;
+use Noz\Contracts\CollectionInterface;
+
+use function Noz\invoke;
+use function
+    Noz\is_traversable,
+    Noz\collect,
+    Noz\dd;
 
 class CollectionTest extends AbstractCollectionTest
 {
-//    public function testCollectFactoryReturnsCollectable()
-//    {
-//        $coll = Collection::factory();
-//        $this->assertInstanceOf(Collectable::class, $coll);
-//    }
+    // BEGIN NEW TESTS....
+
+    public function testSortReturnsNewCollectionSortedUsingDefaultAlgorithm()
+    {
+        $coll = collect($this->testdata['multi']['names']);
+        $this->watchImmutable($coll);
+        $this->assertEquals([
+            0 => 'Alivia Kemmer',
+            1 => 'Gillian Wisozk',
+            2 => 'Kelley Zemlak',
+            3 => 'Lily Heaney',
+            4 => 'Mr. Blaze Daugherty MD',
+            5 => 'Mr. Jaquan Swift',
+            6 => 'Mrs. Aaliyah Paucek Jr.',
+            7 => 'Mrs. Meredith Wyman',
+            8 => 'Mrs. Raegan Shields PhD',
+            9 => 'Natalia Keebler'
+        ], $coll->sort()->values()->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testSortReturnsNewCollectionSortedUsingCustomAlgorithm()
+    {
+        $coll = collect($this->testdata['multi']['names']);
+        $this->watchImmutable($coll);
+        $sorted = $coll->sort(function($str1, $str2) {
+            $str3 = collect(str_split($str1))->unique()->count();
+            $str4 = collect(str_split($str2))->unique()->count();
+            return $str3 - $str4;
+        });
+        $this->assertEquals([
+            0 => 'Kelley Zemlak',
+            1 => 'Lily Heaney',
+            2 => 'Alivia Kemmer',
+            3 => 'Natalia Keebler',
+            4 => 'Gillian Wisozk',
+            5 => 'Mr. Jaquan Swift',
+            6 => 'Mrs. Meredith Wyman',
+            7 => 'Mr. Blaze Daugherty MD',
+            8 => 'Mrs. Raegan Shields PhD',
+            9 => 'Mrs. Aaliyah Paucek Jr.'
+        ], $sorted->values()->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testSortKeysReturnsNewCollectionSortedByKeyUsingDefaultAlgorithm()
+    {
+        $coll = collect([
+            0 => 'Mrs. Raegan Shields PhD',
+            1 => 'Natalia Keebler',
+            2 => 'Mr. Blaze Daugherty MD',
+            3 => 'Lily Heaney',
+            4 => 'Mr. Jaquan Swift',
+            5 => 'Kelley Zemlak',
+            6 => 'Mrs. Aaliyah Paucek Jr.',
+            7 => 'Mrs. Meredith Wyman',
+            8 => 'Gillian Wisozk',
+            9 => 'Alivia Kemmer'
+        ])->flip();
+        $this->watchImmutable($coll);
+        $sorted = $coll->sortKeys();
+        $this->assertEquals([
+            'Alivia Kemmer' => 9,
+            'Gillian Wisozk' => 8,
+            'Kelley Zemlak' => 5,
+            'Lily Heaney' => 3,
+            'Mr. Blaze Daugherty MD' => 2,
+            'Mr. Jaquan Swift' => 4,
+            'Mrs. Aaliyah Paucek Jr.' => 6,
+            'Mrs. Meredith Wyman' => 7,
+            'Mrs. Raegan Shields PhD' => 0,
+            'Natalia Keebler' => 1
+        ], $sorted->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    // @todo Need MANY more sorting tests...
+    // @todo Need tests for Collection::has()
+    // @todo Need tests for Collection::get()
+    // @todo Need tests for Collection::retrieve()
+    // @todo Need tests for Collection::set()
+    // @todo Need tests for Collection::add()
+
+    public function testIndexOfReturnsIndexOfFirstValueOccurrence()
+    {
+        $coll = collect([1,2,3,'a','b','c', 'p' => 'gee']);
+        $this->assertEquals(2, $coll->indexOf(3));
+        $this->assertEquals(5, $coll->indexOf('c'));
+        $this->assertEquals('p', $coll->indexOf('gee'));
+    }
+
+    // @todo Need tests for Collection::keys()
+    // @todo Need tests for Collection::values()
+    // @todo Need tests for Collection::contains()
+    // @todo Need tests for Collection::prepend()
+    // @todo Need tests for Collection::append()
+
+    public function testChunkSplitsCollectionIntoChunks()
+    {
+        $coll = collect([0,1,2,3,4,5,6,7,8,9]);
+        $this->watchImmutable($coll);
+        $this->assertEquals([[0,1,2,3,4,5,6,7,8,9]], $coll->chunk(11)->toArray());
+        $this->assertEquals([[0,1,2,3,4,5,6,7,8,9]], $coll->chunk(10)->toArray());
+        $this->assertEquals([[0,1,2,3,4,5,6,7,8],[9]], $coll->chunk(9)->toArray());
+        $this->assertEquals([[0,1,2,3,4,5,6,7],[8,9]], $coll->chunk(8)->toArray());
+        $this->assertEquals([[0,1,2,3,4,5,6],[7,8,9]], $coll->chunk(7)->toArray());
+        $this->assertEquals([[0,1,2,3,4,5],[6,7,8,9]], $coll->chunk(6)->toArray());
+        $this->assertEquals([[0,1,2,3,4],[5,6,7,8,9]], $coll->chunk(5)->toArray());
+        $this->assertEquals([[0,1,2,3],[4,5,6,7],[8,9]], $coll->chunk(4)->toArray());
+        $this->assertEquals([[0,1,2],[3,4,5],[6,7,8],[9]], $coll->chunk(3)->toArray());
+        $this->assertEquals([[0,1],[2,3],[4,5],[6,7],[8,9]], $coll->chunk(2)->toArray());
+        $this->assertEquals([[0],[1],[2],[3],[4],[5],[6],[7],[8],[9]], $coll->chunk(1)->toArray());
+        $this->assertEquals([[0],[1],[2],[3],[4],[5],[6],[7],[8],[9]], $coll->chunk(-1)->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testCombineReturnsNewCollectionWithValuesFromInputArray()
+    {
+        $coll = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($coll);
+        $combined = $coll->combine([1986,1992,1994,1985,1961]);
+        $this->assertEquals([
+            'luke' => 1986,
+            'margaret' => 1992,
+            'zach' => 1994,
+            'kevanna' => 1985,
+            'lorrie' => 1961
+        ], $combined->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testCombineReturnsNewCollectionWithValuesFromInputCollection()
+    {
+        $coll = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($coll);
+        $combined = $coll->combine($years = collect([1986,1992,1994,1985,1961]));
+        $this->watchImmutable($years);
+        $this->assertEquals([
+            'luke' => 1986,
+            'margaret' => 1992,
+            'zach' => 1994,
+            'kevanna' => 1985,
+            'lorrie' => 1961
+        ], $combined->toArray());
+        $this->assertImmutable($years);
+        $this->assertImmutable($coll);
+    }
+
+    public function testDiffReturnsNewCollectionWithOnlyValuesNotContainedInInputArray()
+    {
+        $ages = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($ages);
+        $diff = $ages->diff([1,2,3,31,22,5,56,10]);
+        $this->assertEquals([
+            'luke' => 30,
+            'margaret' => 24
+        ], $diff->toArray());
+        $this->assertImmutable($ages);
+    }
+
+    public function testDiffReturnsNewCollectionWithOnlyValuesNotContainedInInputCollection()
+    {
+        $ages = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($ages);
+        $diff = $ages->diff(collect([1,2,3,31,22,5,56,10]));
+        $this->assertEquals([
+            'luke' => 30,
+            'margaret' => 24
+        ], $diff->toArray());
+        $this->assertImmutable($ages);
+    }
+
+    public function testDiffKeysReturnsNewCollectionWithOnlyKeysNotContainedInInputArray()
+    {
+        $ages = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($ages);
+        $diff = $ages->diffKeys([
+            'dave' => 1954,
+            'lyle' => 1981,
+            'jayson' => 1980,
+            'luke' => 1986,
+            'margaret' => 1992
+        ]);
+        $this->assertEquals([
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ], $diff->toArray());
+        $this->assertImmutable($ages);
+    }
+
+    public function testDiffKeysReturnsNewCollectionWithOnlyKeysNotContainedInInputCollection()
+    {
+        $ages = collect([
+            'luke' => 30,
+            'margaret' => 24,
+            'zach' => 22,
+            'kevanna' => 31,
+            'lorrie' => 56
+        ]);
+        $this->watchImmutable($ages);
+        $diff = $ages->diffKeys(collect([
+            'jayson' => 1980,
+            'kevanna' => 1985,
+            'luke' => 1986,
+            'zach' => 1994,
+        ]));
+        $this->assertEquals([
+            'lorrie' => 56,
+            'margaret' => 24
+        ], $diff->toArray());
+        $this->assertImmutable($ages);
+    }
+
+    public function testEveryReturnsANewCollectionWithEveryNthItem()
+    {
+        $coll = collect([0,1,2,3,4,5,6,7,8,9]);
+        $this->watchImmutable($coll);
+        $every2nd = $coll->nth(2);
+        $this->assertEquals([
+            0 => 0,
+            2 => 2,
+            4 => 4,
+            6 => 6,
+            8 => 8
+        ], $every2nd->toArray());
+        $every3rd = $coll->nth(3);
+        $this->assertEquals([
+            0 => 0,
+            3 => 3,
+            6 => 6,
+            9 => 9,
+        ], $every3rd->toArray());
+        $every4th = $coll->nth(4);
+        $this->assertEquals([
+            0 => 0,
+            4 => 4,
+            8 => 8
+        ], $every4th->toArray());
+        $every5th = $coll->nth(5);
+        $this->assertEquals([
+            0 => 0,
+            5 => 5
+        ], $every5th->toArray());
+        $every6th = $coll->nth(6);
+        $this->assertEquals([
+            0 => 0,
+            6 => 6,
+        ], $every6th->toArray());
+        $every7th = $coll->nth(7);
+        $this->assertEquals([
+            0 => 0,
+            7 => 7
+        ], $every7th->toArray());
+        $every8th = $coll->nth(8);
+        $this->assertEquals([
+            0 => 0,
+            8 => 8
+        ], $every8th->toArray());
+        $every9th = $coll->nth(9);
+        $this->assertEquals([
+            0 => 0,
+            9 => 9
+        ], $every9th->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testEveryReturnsANewCollectionWithEveryNthItemStartingAtOffset()
+    {
+        $coll = collect([0,1,2,3,4,5,6,7,8,9]);
+        $this->watchImmutable($coll);
+        $every2nd = $coll->nth(2, 1);
+        $this->assertEquals([
+            1 => 1,
+            3 => 3,
+            5 => 5,
+            7 => 7,
+            9 => 9
+        ], $every2nd->toArray());
+        $every3rd = $coll->nth(3, 2);
+        $this->assertEquals([
+            2 => 2,
+            5 => 5,
+            8 => 8
+        ], $every3rd->toArray());
+        $every4th = $coll->nth(4, 5);
+        $this->assertEquals([
+            5 => 5,
+            9 => 9
+        ], $every4th->toArray());
+        $every5th = $coll->nth(5, 5);
+        $this->assertEquals([
+            5 => 5
+        ], $every5th->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testExceptReturnsCollectionWithAllButValuesAtSpecifiedIndices()
+    {
+        $coll = collect([
+            'foo' => 'FOO',
+            'bar' => 'BAR',
+            'baz' => 'BAZ',
+            'bin' => 'BIN'
+        ]);
+        $this->watchImmutable($coll);
+        $exceptBazBin = $coll->except(['baz','bin']);
+        $this->assertEquals(['foo' => 'FOO','bar' => 'BAR'], $exceptBazBin->toArray());
+        $exceptFooBinColl = $coll->except(collect(['foo','bin']));
+        $this->assertEquals(['bar' => 'BAR','baz' => 'BAZ'], $exceptFooBinColl->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testFlipReturnsCollectionWithKeysValuesFlipped()
+    {
+        $coll = collect([
+            'foo' => 'FOO',
+            'bar' => 'BAR',
+            'baz' => 'BAZ',
+            'bin' => 'BIN'
+        ]);
+        $this->watchImmutable($coll);
+        $this->assertEquals([
+            'FOO' => 'foo',
+            'BAR' => 'bar',
+            'BAZ' => 'baz',
+            'BIN' => 'bin'
+        ], $coll->flip()->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    // @TODO I skipped a BUNCH of methods here...
+
+    public function testSplitReturnsCollectionWithItemsSplitIntoNumGroups()
+    {
+        $coll = collect(range(0,20));
+        $this->watchImmutable($coll);
+        $this->assertEquals([
+            [0,1,2,3,4],
+            [5,6,7,8],
+            [9,10,11,12],
+            [13,14,15,16],
+            [17,18,19,20]
+        ], $coll->split(5)->toArray());
+        $this->assertEquals([
+            [0,1,2,3,4,5,6],
+            [7,8,9,10,11,12,13],
+            [14,15,16,17,18,19,20]
+        ], $coll->split(3)->toArray());
+        $this->assertEquals([
+            [ 0, 1, 2, 3, 4, 5],
+            [ 6, 7, 8, 9,10],
+            [11,12,13,14,15],
+            [16,17,18,19,20]
+        ], $coll->split(4)->toArray());
+        $this->assertEquals([
+            [ 0, 1, 2],
+            [ 3, 4, 5],
+            [ 6, 7, 8],
+            [ 9,10,11],
+            [12,13,14],
+            [15,16],
+            [17,18],
+            [19,20],
+        ], $coll->split(8)->toArray());
+        $this->assertImmutable($coll);
+    }
+
+    public function testZip()
+    {
+        $coll1 = collect(['broom','chair','table']);
+        $coll2 = collect(['shoe','shirt','hat']);
+        $coll3 = collect(['toothbrush','floss','flouride']);
+        $this->assertEquals([
+            ['broom','shoe','toothbrush'],
+            ['chair','shirt','floss'],
+            ['table','hat','flouride'],
+        ], $coll1->zip($coll2->toArray(), $coll3->toArray())->toArray());
+
+    }
+
+    // END NEW TESTS
+
+    // BEGIN OLD TESTS...
 
     public function testCollectFactoryReturnsBasicCollectionByDefault()
     {
@@ -37,159 +448,11 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertInstanceOf(Collection::class, $coll);
     }
 
-    // @todo write this test
-    public function testCollectFactoryThrowsExceptionOnInvalidForceClassType()
-    {
-
-    }
-
     public function testCollectionFactoryPassesInputToCollection()
     {
         $in = ['foo' => 'bar', 'baz' => 'bin'];
         $coll = Collection::factory($in);
         $this->assertEquals($in, $coll->toArray());
-    }
-
-    public function testCollectionFactoryReturnsTabularCollectionForTabularDataset()
-    {
-        $in = [
-            [
-                'foo' => 'far',
-                'woo' => 'war',
-                'too' => 'tar',
-                'coo' => 'car',
-                'roo' => 'rar'
-            ],
-            [
-                'foo' => 'yay',
-                'woo' => 'bay',
-                'too' => 'day',
-                'coo' => 'fay',
-                'roo' => 'stay'
-            ],
-            [
-                'foo' => 'poo',
-                'woo' => 'doo',
-                'too' => 'soo',
-                'coo' => 'woo',
-                'roo' => 'coo'
-            ],
-            [
-                'foo' => '---',
-                'woo' => '...',
-                'too' => '===',
-                'coo' => '~~~',
-                'roo' => ',,,'
-            ]
-        ];
-        $table = Collection::factory($in);
-        $this->assertInstanceOf(TabularCollection::class, $table);
-    }
-
-    public function testCollectionFactoryReturnsMultiCollectionForMultiDimensionalDataset()
-    {
-        $in = [
-            [
-                'foo' => 'far',
-                'woo' => 'war',
-                'too' => 'tar',
-                'coo' => 'car',
-                'roo' => 'rar'
-            ],
-            [
-                'foo' => 'yay',
-                'woo' => 'bay',
-                'too' => 'day',
-                'coo' => 'fay',
-                'roo' => 'stay'
-            ],
-            [
-                'foo' => 'poo',
-                'woo' => 'doo',
-                'too' => 'soo',
-                'coo' => 'woo',
-            ],
-            [
-                'foo' => '---',
-                'woo' => '...',
-                'too' => '===',
-                'coo' => '~~~',
-                'roo' => ',,,'
-            ]
-        ];
-        $multi = Collection::factory($in);
-        $this->assertInstanceOf(MultiCollection::class, $multi);
-        $in = [
-            [
-                'foo' => 'far',
-                'woo' => 'war',
-                'too' => 'tar',
-                'coo' => 'car',
-                'roo' => 'rar'
-            ],
-            [1,2,3,4,5],
-            'foobar',
-            [
-                'foo' => 'yay',
-                'woo' => 'bay',
-            ],
-            [
-                'foo' => '---',
-                'woo' => '...',
-                'too' => '===',
-                'coo' => '~~~',
-                'roo' => ',,,'
-            ]
-        ];
-        $multi = Collection::factory($in);
-        $this->assertInstanceOf(MultiCollection::class, $multi);
-        $in = [
-            [
-                'foo' => 'far',
-                'woo' => 'war',
-                'too' => 'tar',
-                'coo' => 'car',
-                'roo' => 'rar'
-            ],
-            1,2,3,4,5
-        ];
-        $multi = Collection::factory($in);
-        $this->assertInstanceOf(MultiCollection::class, $multi);
-    }
-
-    public function testCollectionFactoryReturnsNumericCollectionForNumericDataset()
-    {
-        $in = [1,2,3,4,5];
-        $numeric = Collection::factory($in);
-        $this->assertInstanceOf(NumericCollection::class, $numeric);
-        $in = [1,2.5,3,4,5];
-        $numeric = Collection::factory($in);
-        $this->assertInstanceOf(NumericCollection::class, $numeric);
-        $in = [0,0,0,0,'0'];
-        $numeric = Collection::factory($in);
-        $this->assertInstanceOf(NumericCollection::class, $numeric);
-        $in = ['0','123',10];
-        $numeric = Collection::factory($in);
-        $this->assertInstanceOf(NumericCollection::class, $numeric);
-        $in = [1,];
-        $numeric = Collection::factory($in);
-        $this->assertInstanceOf(NumericCollection::class, $numeric);
-    }
-
-    public function testCollectionFactoryReturnsCharCollectionForCharacterSet()
-    {
-        $chars = 'a set of characters';
-        $charColl = Collection::factory($chars);
-        $this->assertInstanceOf(CharCollection::class, $charColl);
-        $chars = '000';
-        $charColl = Collection::factory($chars);
-        $this->assertInstanceOf(CharCollection::class, $charColl);
-        $chars = 0;
-        $charColl = Collection::factory($chars);
-        $this->assertInstanceOf(CharCollection::class, $charColl);
-        $chars = 12345;
-        $charColl = Collection::factory($chars);
-        $this->assertInstanceOf(CharCollection::class, $charColl);
     }
 
     public function testCollectionFactoryReturnsCollectionForEverythingElse()
@@ -261,61 +524,62 @@ class CollectionTest extends AbstractCollectionTest
     /**
      * @expectedException \OutOfBoundsException
      */
-    public function testCollectionGetThrowsExceptionIfIndexNotFoundAndThrowIsTrue()
+    public function testCollectionRetrieveThrowsExceptionIfIndexNotFound()
     {
         $in = ['foo' => 'bar', 'baz' => 'bin'];
         $coll = Collection::factory($in);
-        $coll->get('poo', null, true);
+        $coll->retrieve('poo');
     }
 
-    public function testCollectionSetValue()
+    public function testCollectionSetValueSetsValueInCopyButDoesntChangeOriginal()
     {
         $in = ['foo' => 'bar', 'baz' => 'bin'];
         $coll = Collection::factory($in);
+        $this->watchImmutable($coll);
         $this->assertNull($coll->get('poo'));
-        $this->assertInstanceOf(AbstractCollection::class, $coll->set('poo', 'woo!'));
-        $this->assertEquals('woo!', $coll->get('poo'));
+        $this->assertInstanceOf(CollectionInterface::class, $copy = $coll->set('poo', 'woo!'));
+        $this->assertNull($coll->get('poo'), 'Ensure original collection is not changed by Collection::set().');
+        $this->assertEquals('woo!', $copy->get('poo'), 'Ensure returned collection from Collection::set() has index set to specified value');
+        $this->assertNotSame($coll, $copy, 'Ensure return collection from Collection::set() is a copy.');
+        $this->assertImmutable($coll);
     }
 
-    public function testCollectionDeleteValue()
+    public function testCollectionDeleteValueDeletesValueInCopyButNotOriginal()
     {
         $in = ['foo' => 'bar', 'baz' => 'bin'];
         $coll = Collection::factory($in);
+        $this->watchImmutable($coll);
         $this->assertNotNull($coll->get('foo'));
-        $this->assertInstanceOf(AbstractCollection::class, $coll->delete('foo'));
-        $this->assertNull($coll->get('foo'));
-    }
-
-    /**
-     * @expectedException \OutOfBoundsException
-     */
-    public function testCollectionDeleteValueThrowsExceptionIfThrowIsTrue ()
-    {
-        $in = ['foo' => 'bar', 'baz' => 'bin'];
-        $coll = Collection::factory($in);
-        $coll->delete('boo', true);
+        $this->assertInstanceOf(Collection::class, $copy = $coll->delete('foo'));
+        $this->assertNull($copy->get('foo'));
     }
 
     public function testCollectionToArrayCallsToArrayRecursively()
-    {
-        $in1 = ['foo' => 'bar', 'baz' => 'bin'];
-        $in2 = ['boo' => 'far', 'biz' => 'ban'];
-        $in3 = ['doo' => 'dar', 'diz' => 'din'];
-        $coll1 = Collection::factory($in1);
-        $coll2 = Collection::factory($in2);
-        $coll2->set('coll1', $coll1);
-        $coll3 = Collection::factory($in3);
-        $coll3->set('coll2', $coll2);
-        $this->assertEquals([
-            'doo' => 'dar', 'diz' => 'din',
-            'coll2' => [
-                'boo' => 'far', 'biz' => 'ban',
-                'coll1' => [
-                    'foo' => 'bar', 'baz' => 'bin'
-                ]
+{
+    $in1 = ['foo' => 'bar', 'baz' => 'bin'];
+    $in2 = ['boo' => 'far', 'biz' => 'ban'];
+    $in3 = ['doo' => 'dar', 'diz' => 'din'];
+    $coll1 = Collection::factory($in1);
+    $this->watchImmutable($coll1);
+    $coll2 = Collection::factory($in2);
+    $this->watchImmutable($coll2);
+    $copy2 = $coll2->set('coll1', $coll1);
+    $coll3 = Collection::factory($in3);
+    $this->watchImmutable($coll3);
+    $copy3 = $coll3->set('coll2', $copy2);
+    $this->assertEquals([
+        'doo' => 'dar', 'diz' => 'din',
+        'coll2' => [
+            'boo' => 'far', 'biz' => 'ban',
+            'coll1' => [
+                'foo' => 'bar', 'baz' => 'bin'
             ]
-        ], $coll3->toArray());
-    }
+        ]
+    ], $copy3->toArray());
+    $this->assertImmutable($coll1);
+    $this->assertImmutable($coll2);
+    $this->assertImmutable($coll3);
+}
 
     public function testCollectionKeysReturnsCollectionOfKeys()
     {
@@ -331,7 +595,7 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertEquals(['bar','bin'], $coll->values()->toArray());
     }
 
-    public function testCollectionMergeMergesDataIntoCollection()
+    public function testCollectionUnionMergesDataWithCollection()
     {
         $in = ['foo' => 'bar', 'baz' => 'bin'];
         $coll = Collection::factory($in);
@@ -340,17 +604,7 @@ class CollectionTest extends AbstractCollectionTest
             'foo' => 'bar',
             'baz' => 'bone',
             'boo' => 'hoo'
-        ], $coll->merge($mergeIn)->toArray());
-    }
-
-    /**
-     * @expectedException \InvalidArgumentException
-     */
-    public function testCollectionMergeThrowsExceptionOnInvalidDataType ()
-    {
-        $in = ['foo' => 'bar', 'baz' => 'bin'];
-        $coll = Collection::factory($in);
-        $coll->merge('boo');
+        ], $coll->union($mergeIn)->toArray());
     }
 
     public function testCollectionContainsReturnsTrueIfRequestedValueInCollection()
@@ -436,38 +690,32 @@ class CollectionTest extends AbstractCollectionTest
         }, ['goo','boo']));
     }
 
-    public function testPopReturnsAnItemAndRemovesItFromEnd()
-    {
-        $coll = Collection::factory(['a','b','c','d',$expected = 'pop goes the weasel']);
-        $this->assertEquals($expected, $coll->pop());
-        $this->assertEquals(['a','b','c','d'], $coll->toArray());
-        $this->assertEquals('d', $coll->pop());
-        $this->assertEquals(['a','b','c'], $coll->toArray());
-    }
-
-    public function testShiftReturnsAnItemAndRemovesItFromBeginning()
-    {
-        $coll = Collection::factory([$expected = 'a','b','c','d','pop goes the weasel']);
-        $this->assertEquals($expected, $coll->shift());
-        $this->assertEquals(['b','c','d','pop goes the weasel'], $coll->toArray());
-        $this->assertEquals('b', $coll->shift());
-        $this->assertEquals(['c','d','pop goes the weasel'], $coll->toArray());
-    }
-
-    public function testPushItemsOntoCollectionAddsToEnd()
+    public function testAppentItemsOntoCollectionAddsToEnd()
     {
         $coll = Collection::factory(['a','b','c','d']);
-        $coll->push('e');
-        $this->assertEquals(['a','b','c','d','e'], $coll->toArray());
-        $this->assertEquals(['a','b','c','d','e','f','g',['h','i','j'], 'k'], $coll->push('f', 'g', ['h', 'i', 'j'], 'k')->toArray());
+        $this->watchImmutable($coll);
+        $copy1 = $coll->append('e');
+        $this->assertEquals(['a','b','c','d','e'], $copy1->toArray());
+        $copy2 = $copy1->append('f')
+             ->append('g')
+             ->append(['h', 'i', 'j'])
+             ->append('k');
+        $this->assertEquals(['a','b','c','d','e','f','g',['h','i','j'], 'k'], $copy2->toArray());
+        $this->assertImmutable($coll);
     }
 
-    public function testUnshiftAddsToBeginningOfCollection()
+    public function testPrependAddsToBeginningOfCollection()
     {
         $coll = Collection::factory(['a','b','c','d']);
-        $coll->unshift('e');
-        $this->assertEquals(['e','a','b','c','d'], $coll->toArray());
-        $this->assertEquals(['f','g',['h','i','j'],'k','e','a','b','c','d'], $coll->unshift('f', 'g', ['h', 'i', 'j'], 'k')->toArray());
+        $this->watchImmutable($coll);
+        $copy = $coll->prepend('e');
+        $this->assertEquals(['e','a','b','c','d'], $copy->toArray());
+        $copy2 = $copy->prepend('k')
+             ->prepend(['h', 'i', 'j'])
+             ->prepend('g')
+             ->prepend('f');
+        $this->assertEquals(['f','g',['h','i','j'],'k','e','a','b','c','d'], $copy2->toArray());
+        $this->assertImmutable($coll);
     }
 
     public function testMapReturnsANewCollectionContainingValuesAfterCallback()
@@ -476,34 +724,8 @@ class CollectionTest extends AbstractCollectionTest
         $coll2 = $coll->map(function($val){
             return $val + 1;
         });
-        $this->assertInstanceOf(AbstractCollection::class, $coll2);
+        $this->assertInstanceOf(CollectionInterface::class, $coll2);
         $this->assertEquals([1,2,3,4,5,6,7,8,9,10], $coll2->toArray());
-    }
-
-    public function testCollectionWalkCallbackModifyInPlace()
-    {
-        $coll = Collection::factory([1,2,3,4,5,6,7,8,9,0]);
-        $context = [
-            'extra_context' => 'foobar',
-            'more_context' => 'boofar'
-        ];
-        $coll->walk(function (&$value, $key, $udata) {
-            if ($key %2 == 0) $value++;
-            else $value--;
-            $value .= $udata['extra_context'];
-        }, $context);
-        $this->assertEquals([
-            '2foobar',
-            '1foobar',
-            '4foobar',
-            '3foobar',
-            '6foobar',
-            '5foobar',
-            '8foobar',
-            '7foobar',
-            '10foobar',
-            '-1foobar'
-        ], $coll->toArray());
     }
 
     public function testCollectionReduceReturnsSingleValueUsingCallback()
@@ -514,7 +736,7 @@ class CollectionTest extends AbstractCollectionTest
             'luke'   => 'really cool guy',
             'terry'  => 'what a fool'
         ]);
-        $this->assertEquals('really cool guy', $coll->reduce(function($carry, $item) {
+        $this->assertEquals('really cool guy', $coll->fold(function($item, $carry, $key, $iter) {
             if (strlen($item) >= strlen($carry)) {
                 return $item;
             }
@@ -602,36 +824,6 @@ class CollectionTest extends AbstractCollectionTest
         $this->assertTrue(is_traversable($coll));
     }
 
-    public function testOffsetMethodsForCollectionArrayAccess()
-    {
-        $coll = Collection::factory($exp = [
-            'mk'     => 'lady',
-            'lorrie' => 'sweet',
-            'luke'   => 'really cool guy',
-            'terry'  => 'what a fool',
-        ]);
-        $this->assertInstanceOf(ArrayAccess::class, $coll);
-        $this->assertTrue($coll->offsetExists('mk'));
-        $this->assertFalse($coll->offsetExists('mom'));
-        $this->assertEquals('lady', $coll->offsetGet('mk'));
-        $this->assertNull($coll->offsetSet('mk', 'wife'));
-        $this->assertEquals('wife', $coll->offsetGet('mk'));
-        $coll->offsetSet('mom', 'saint');
-        $this->assertTrue($coll->offsetExists('mom'));
-        $this->assertEquals('saint', $coll->offsetGet('mom'));
-        $this->assertNull($coll->offsetUnset('mom'));
-        $this->assertFalse($coll->offsetExists('mom'));
-
-        // now we can test that array syntax works (it will)
-        $this->assertTrue(isset($coll['mk']));
-        $this->assertEquals('wife', $coll['mk']);
-        unset($coll['mk']);
-        $this->assertFalse(isset($coll['mk']));
-        $coll['foo'] = 'var';
-        $this->assertTrue(isset($coll['foo']));
-        $this->assertEquals('var', $coll['foo']);
-    }
-
     public function testCollectionIsCountable()
     {
         $coll = Collection::factory($exp = [
@@ -667,85 +859,149 @@ class CollectionTest extends AbstractCollectionTest
             10 => 'ten',
             'fifth' => 'this is the fifth'
         ]);
-        $this->assertTrue($coll->hasPosition(0));
-        $this->assertTrue($coll->hasPosition(1));
-        $this->assertTrue($coll->hasPosition(2));
-        $this->assertTrue($coll->hasPosition(3));
-        $this->assertTrue($coll->hasPosition(4));
-        $this->assertFalse($coll->hasPosition(5));
+        $this->assertTrue($coll->hasOffset(0));
+        $this->assertTrue($coll->hasOffset(1));
+        $this->assertTrue($coll->hasOffset(2));
+        $this->assertTrue($coll->hasOffset(3));
+        $this->assertTrue($coll->hasOffset(4));
+        $this->assertFalse($coll->hasOffset(5));
     }
 
-    public function testEachWithAlwaysFalseCallbackGivesEmptyIterator()
+    public function testIndexOfReturnsIndexForGivenValue()
     {
-        $coll = new Collection($this->testdata[Collection::class]);
-        $callback = function ($val, $key) {
-            return false;
-        };
-        $this->assertInstanceOf(AbstractCollection::class, $coll->each($callback));
-        $this->assertCount(0, $coll->each($callback));
+        $coll = new Collection(['foo','bar','baz', 'boo' => 'woo']);
+        $this->assertEquals(1, $coll->indexOf('bar'));
+        $this->assertEquals('boo', $coll->indexOf('woo'));
+        $this->assertNull($coll->indexOf('notinarray', false));
+    }
+
+//    /**
+//     * @expectedException \OutOfBoundsException
+//     */
+//    public function testIndexOfThrowsExceptionIfValueNotFoundAndThrowParamIsTrue()
+//    {
+//        $coll = new Collection(['foo','bar','baz', 'boo' => 'woo']);
+//        $this->assertEquals(1, $coll->indexOf('bar'));
+//        $this->assertEquals('boo', $coll->indexOf('woo'));
+//        $this->assertNull($coll->indexOf('notinarray', true));
+//    }
+
+    // BEGIN Numeric data method tests
+
+    public function testIncrementDecrementAddsSubtractsOneFromGivenKey()
+    {
+        $coll = collect([10,15,20,25,50,100]);
+        $this->watchImmutable($coll);
+        $zero = 0;
+        $copy = $coll->increment($zero);
+        $this->watchImmutable($copy);
+        $this->assertEquals(11, $copy->get($zero));
+        $copy2 = $copy->increment($zero)
+            ->increment($zero)
+            ->increment($zero)
+            ->increment($zero);
+        $this->watchImmutable($copy2);
+        $this->assertEquals(15, $copy2->get($zero));
+        $copy3 = $copy2->decrement($zero);
+        $this->watchImmutable($copy3);
+        $this->assertEquals(14, $copy3->get($zero));
+        $copy4 = $copy3->decrement($zero)
+            ->decrement($zero);
+        $this->watchImmutable($copy4);
+        $this->assertEquals(12, $copy4->get($zero));
+        $this->assertImmutable($coll);
+        $this->assertImmutable($copy);
+        $this->assertImmutable($copy2);
+        $this->assertImmutable($copy3);
+        $this->assertImmutable($copy4);
+    }
+
+    public function testIncrementDecrementWithIntervalAddsSubtractsIntervalFromGivenKey()
+    {
+        $coll = collect([10,15,20,25,50,100]);
+        $this->watchImmutable($coll);
+        $zero = 0;
+        $copy = $coll->increment($zero, 5);
+        $this->watchImmutable($copy);
+        $this->assertEquals(15, $copy->get($zero));
+        $copy2 = $copy->increment($zero, 100);
+        $this->watchImmutable($copy2);
+        $this->assertEquals(115, $copy2->get($zero));
+        $copy3 = $copy2->decrement($zero, 2);
+        $this->watchImmutable($copy3);
+        $this->assertEquals(113, $copy3->get($zero));
+        $copy4 = $copy3->decrement($zero, 1000);
+        $this->watchImmutable($copy4);
+        $copy5 = $copy4->decrement($zero);
+        $this->watchImmutable($copy5);
+        $this->assertEquals(-888, $copy5->get($zero));
+        $this->assertImmutable($coll);
+        $this->assertImmutable($copy);
+        $this->assertImmutable($copy2);
+        $this->assertImmutable($copy3);
+        $this->assertImmutable($copy4);
+        $this->assertImmutable($copy5);
+    }
+
+
+    public function testSumMethodSumsCollection()
+    {
+        $coll = collect([10,20,30,100,60,80]);
+        $this->assertEquals(300, $coll->sum());
+    }
+
+    public function testAverageMethodAveragesCollection()
+    {
+        $coll = collect([10,20,30,100,60,80]);
+        $this->assertEquals(50, $coll->average());
+    }
+
+    public function testModeMethodReturnsCollectionMode()
+    {
+        $coll = collect([10,20,30,100,60,80,10,20,100,10,50,40,10,20,50,60,80]);
+        $this->assertEquals(10, $coll->mode());
+    }
+
+    public function testMedianMethodReturnsCollectionMedian()
+    {
+        $coll = collect([1,10,20,30,100,60,80,10,20,100,10,50,40,10,20,50,60,80]);
+        $this->assertEquals(35, $coll->median());
+
+        $coll = collect([1,20,300,4000]);
+        $this->assertEquals(160, $coll->median());
+
+        // $coll = collect(['one','two','three','four','five']);
+        // $this->assertEquals('four', $coll->median());
+
+        // @todo Maybe for strings median should work with string length?
+        // $coll = collect(['hello','world','this','will','do','weird','stuff','yes','it','will']);
+        // $this->assertEquals(0, $coll->median());
+
+        $coll = collect([1]);
+        $this->assertEquals(1, $coll->median());
+
+        $coll = collect([1,2]);
+        $this->assertEquals(1.5, $coll->median());
+    }
+
+    public function testCountsReturnsCollectionOfCounts()
+    {
+        $data = [1,1,1,2,0,2,2,3,3,3,3,3,3,3,4,5,6,6,7,8,9,0];
+        $coll = collect($data);
+        $this->assertInstanceOf(Collection::class, $coll);
+        $counts = $coll->counts();
+        $this->assertInstanceOf(Collection::class, $counts);
         $this->assertEquals([
-        ], $coll->each($callback)->toArray());
-    }
-
-    public function testEachIteratesWithCallbackAsFilter()
-    {
-        $coll = new Collection($this->testdata[Collection::class]);
-        $callback = function ($val, $key) {
-            return strlen($val) >= 5;
-        };
-        $this->assertInstanceOf(AbstractCollection::class, $coll->each($callback));
-        $this->assertCount(7, $coll->each($callback));
-        $this->assertEquals([
-            2 => 'voluptatem',
-            4 => 'quisquam',
-            5 => 'voluptatibus',
-            7 => 'veniam',
-            8 => 'omnis',
-            10 => 'cupiditate',
-            13 => 'numquam'
-        ], $coll->each($callback)->toArray());
-    }
-
-    public function testEachIteratesWithCallbackAsFilterForKey()
-    {
-        $coll = new Collection($this->testdata[Collection::class]);
-        $callback = function ($val, $key) {
-            return $key %2 == 0;
-        };
-        $this->assertInstanceOf(AbstractCollection::class, $coll->each($callback));
-        $this->assertCount(8, $coll->each($callback));
-        $this->assertEquals([
-            0 => 'et',
-            2 => 'voluptatem',
-            4 => 'quisquam',
-            6 => 'modi',
-            8 => 'omnis',
-            10 => 'cupiditate',
-            12 => 'ipsa',
-            14 => 'est'
-        ], $coll->each($callback)->toArray());
-    }
-
-    public function testEachIsAutomaticallyBoundToCollection()
-    {
-        $coll = new Collection($this->testdata[Collection::class]);
-        $callback = function ($val, $key) use ($coll) {
-            return ($this === $coll);
-        };
-        $this->assertInstanceOf(AbstractCollection::class, $coll->each($callback));
-        $this->assertCount(15, $coll->each($callback));
-    }
-
-    public function testEachCanBeBoundToArbitraryObject()
-    {
-        $coll1 = new Collection([1,2,3]);
-        $coll2 = new Collection([4,5,6]);
-        $coll3 = new Collection([7,8,9]);
-        $callback = function ($val, $key) {
-            return ($this->contains(4));
-        };
-        $this->assertInstanceOf(AbstractCollection::class, $coll1->each($callback));
-        $this->assertCount(3, $coll1->each($callback, $coll2));
-        $this->assertCount(0, $coll1->each($callback, $coll3));
+            1 => 3,
+            2 => 3,
+            3 => 7,
+            4 => 1,
+            5 => 1,
+            6 => 2,
+            7 => 1,
+            8 => 1,
+            9 => 1,
+            0 => 2
+        ], $counts->toArray());
     }
 }

@@ -32,10 +32,3 @@ function si($in, $exit = true, $dump = true)
     }
     return $out;
 }
-
-if (!function_exists('dd')) {
-    function with($obj)
-    {
-        return $obj;
-    }
-}

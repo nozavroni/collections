@@ -10,9 +10,34 @@
  */
 namespace NozTest;
 
+use ArrayIterator;
+use Closure;
+use EmptyIterator;
+use Exception;
+use InvalidArgumentException;
+use LimitIterator;
+use function Noz\coll_serialize;
 use function
     Noz\collect,
-    Noz\invoke;
+    Noz\invoke,
+    Noz\is_traversable,
+    Noz\is_arrayable,
+    Noz\to_array,
+    Noz\typeof,
+    Noz\get_range_start_end,
+    Noz\normalize_offset,
+    Noz\_;
+use Noz\Collection\Collection;
+use Noz\Collection\Sequence;
+use Noz\Contracts\CollectionInterface;
+use Noz\Contracts\Structure\Collectable;
+use function Noz\get_count;
+use function Noz\object_hash;
+use function Noz\sdump;
+use function Noz\traversable_to_array;
+use RuntimeException;
+use SplObjectStorage;
+use stdClass;
 
 /**
  * Noz functions tests
@@ -55,4 +80,346 @@ class FunctionsTest extends UnitTestCase
             return "Hello, {$first} {$last}!";
         }, 'Luke', 'Visinoni'));
     }
+
+    public function testCollectReturnsCollection()
+    {
+        $this->assertInstanceOf(Collection::class, collect(), 'Ensure Noz\\collect() returns CollectionInterface when passed no params.');
+        $this->assertInstanceOf(Collection::class, collect([]), 'Ensure Noz\\collect() returns CollectionInterface when passed an empty array.');
+        $this->assertInstanceOf(Collection::class, collect(['foo' => 'bar', 'baz' => 'bin']), 'Ensure Noz\\collect() returns CollectionInterface when passed an array.');
+        $this->assertInstanceOf(Collection::class, collect(new ArrayIterator(['foo' => 'bar', 'baz' => 'bin'])), 'Ensure Noz\\collect() returns CollectionInterface when passed an array iterator with an empty array.');
+    }
+
+    public function testInvokeInvokesAnonymousFunction()
+    {
+        $this->assertEquals(6, invoke(function($one, $two, $three) { return $one + $two + $three; }, 1, 2, 3), 'Ensure that Noz\\invoke() uses first argument as callback and invokes it, passing remaining arguments as the function parameters.');
+    }
+
+    public function testInvokeCanInvokeStringIfItIsAValidFunctionName()
+    {
+        $this->assertEquals('string', invoke('gettype', 'str'));
+        $this->assertEquals('string', invoke('\Noz\typeof', 'str'));
+    }
+
+    public function testInvokeCanInvokeObjectsThatImplementMagicInvokeMethod()
+    {
+        $coll = collect([3,2,1]);
+        $this->assertEquals(3, invoke($coll, 0));
+        $this->assertEquals(2, invoke($coll, 1));
+    }
+
+    public function testIsTraversableTestsThatValueIsArrayOrTraversable()
+    {
+        $this->assertFalse(is_traversable(null));
+        $this->assertFalse(is_traversable(0));
+        $this->assertFalse(is_traversable('not traversable'));
+        $this->assertFalse(is_traversable(1.5));
+        $this->assertFalse(is_traversable(true));
+
+        $this->assertTrue(is_traversable([]));
+        $this->assertTrue(is_traversable(new ArrayIterator([])));
+        $this->assertTrue(is_traversable(new ArrayIterator([1,2,3])));
+        $this->assertTrue(is_traversable(new SplObjectStorage()));
+        $objs = new SplObjectStorage();
+        $objs->attach(new stdClass, 'foo');
+        $objs->attach(new stdClass, 'bar');
+        $this->assertTrue(is_traversable($objs));
+    }
+
+    public function testIsArrayableTestsValueCanBeConvertedToArray()
+    {
+        $this->assertTrue(is_arrayable([]));
+        $this->assertTrue(is_arrayable([1,2,3]));
+        $this->assertTrue(is_arrayable(new ArrayIterator([])));
+        $this->assertTrue(is_arrayable(new ArrayIterator([1,2,3])));
+        $this->assertTrue(is_arrayable(collect()));
+        $this->assertTrue(is_arrayable(collect([])));
+        $this->assertTrue(is_arrayable(collect([1,2,3])));
+
+        $this->assertFalse(is_arrayable(null));
+        $this->assertFalse(is_arrayable(0));
+        $this->assertFalse(is_arrayable('foo'));
+        $this->assertFalse(is_arrayable(true));
+        $this->assertFalse(is_arrayable(1.5));
+        $this->assertFalse(is_arrayable(new stdClass));
+        $this->assertFalse(is_arrayable(new Exception()));
+    }
+
+    public function testToArrayReturnsArray()
+    {
+        $this->assertInternalType('array', to_array('foo', false));
+        $this->assertInternalType('array', to_array(1, false));
+        $this->assertInternalType('array', to_array(null, false));
+        $this->assertInternalType('array', to_array(1.5, false));
+
+        $this->assertInternalType('array', to_array([]));
+        $this->assertInternalType('array', to_array(['foo',1,2]));
+        $this->assertInternalType('array', to_array(new ArrayIterator([1,2,3])));
+        $this->assertInternalType('array', to_array(collect([1,2,3])));
+
+        $this->assertEquals([], to_array(null, false));
+        $this->assertEquals([1], to_array(1, false));
+        $obj = new stdClass();
+        $obj->foo = "bar";
+        $obj->bar = "baz";
+        $this->assertEquals(['foo' => 'bar','bar' => 'baz'], to_array($obj, false));
+
+        $arr = new LimitIterator(new ArrayIterator([1,3,4]));
+        $this->assertEquals(3, get_count($arr));
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     */
+    public function testToArrayThrowsExceptionIfStrictArgIsTrueAndItCannotConvertInputToAnArray()
+    {
+        to_array(new stdClass, true);
+    }
+
+    public function testTypeOfReturnsDataType()
+    {
+        $this->assertEquals('NULL', typeof(null));
+        $this->assertEquals('integer', typeof(0));
+        $this->assertEquals('double', typeof(1.5));
+        $this->assertEquals('string', typeof('foo'));
+        $this->assertEquals('boolean', typeof(true));
+        $this->assertEquals('array', typeof([]));
+        $this->assertEquals('object <stdClass>', typeof(new stdClass));
+        $this->assertEquals('resource <stream>', typeof(STDIN));
+        $this->assertEquals('stdClass', typeof(new stdClass, false));
+        $this->assertEquals('stream', typeof(STDIN, false));
+    }
+
+    public function testUnderscoreIsAliasForInvokeIfPassedACallable()
+    {
+        $c = [
+            'anonymous_no_args' => function() { return 'foo'; },
+            'anonymous_one_arg' => function($foo) { return $foo; },
+            'anonymous_two_args' => function($foo, $bar) { return $foo . $bar; }
+        ];
+        $this->assertEquals('foo', _($c['anonymous_no_args']));
+        $this->assertEquals('BAR', _($c['anonymous_one_arg'], 'BAR'));
+        $this->assertEquals('fooBAR', _($c['anonymous_two_args'], 'foo', 'BAR'));
+
+        $closure_no_args = $c['anonymous_no_args']->bindTo($this);
+        $this->assertEquals('foo', _($closure_no_args));
+        $closure_one_arg = $c['anonymous_one_arg']->bindTo($this);
+        $this->assertEquals('boo', _($closure_one_arg, 'boo'));
+        $closure_two_args = $c['anonymous_two_args']->bindTo($this);
+        $this->assertEquals('booFAR', _($closure_two_args, 'boo', 'FAR'));
+    }
+
+    public function testUnderscoreCanInvokeCollectionMethods()
+    {
+        $coll = collect($expected = ['a' => 'foo','b' => 'bar','c' => 'baz']);
+        $this->assertEquals('bar', _([$coll, 'get'], 'b'));
+        $this->assertInstanceOf(Collection::class, _([$coll, 'set'], 'b', 'BAR!'));
+    }
+
+    public function testUnderscoreAliasForCollectIfPassedTraversable()
+    {
+        $arr = [1,2,3,4];
+        $this->assertInstanceOf(CollectionInterface::class, _($arr));
+    }
+
+    public function testUnderscoreSimplyReturnsArgIfItDoesntKnowWhatElseToDoWithIt()
+    {
+        $in = false;
+        $this->assertSame($in, _($in));
+    }
+
+    public function testTraversableToArrayWillReturnArrayForAnythingTraversable()
+    {
+        $arr = new ArrayIterator([1,2,3]);
+        $t2a = traversable_to_array($arr);
+        $this->assertInternalType('array', $t2a);
+        $this->assertEquals([1,2,3], $t2a);
+        $coll = collect([1,2,3]);
+        $c2a = traversable_to_array($coll);
+        $this->assertInternalType('array', $c2a);
+        $this->assertEquals([1,2,3], $c2a);
+    }
+
+    public function testCurryWithUnderscore()
+    {
+        $arrows = function($a) {
+            return function($b) use ($a) {
+                return function ($c) use ($a, $b) {
+                    return "{$a} -> {$b} -> {$c}";
+                };
+            };
+        };
+        // kinda verbose, but this is the best it's going to get for currying in PHP...
+        $this->assertEquals('foo -> bar -> baz', _(_(_($arrows, 'foo'), 'bar'), 'baz'));
+    }
+
+    public function testGetCount()
+    {
+        $stubNeg5 = $this->getMockBuilder('stdClass')
+                      ->setMethods(['__toString'])
+                      ->getMock();
+        $stubNeg5->method('__toString')
+                 ->willReturn('-5');
+
+        $this->assertSame(-5, get_count($stubNeg5));
+
+        $stub10 = [1,2,3,4,5,6,7,8,9,10];
+
+        $this->assertSame(10, get_count($stub10));
+
+        $stub10 = $this->getMockBuilder(Collection::class)
+                      ->setMethods(['count'])
+                      ->getMock();
+        $stub10->method('count')
+              ->willReturn('10');
+
+        $this->assertSame(10, get_count($stub10));
+
+        $this->assertSame(0, get_count(''));
+        $this->assertSame(0, get_count(0));
+        $this->assertEquals(4, get_count(new LimitIterator(new ArrayIterator([1,2,3,4]))));
+
+        // traversable w/out __toString OR count methods
+        $traversable = $this->createPartialMock('Iterator', [
+            'current',
+            'next',
+            'valid',
+            'key',
+            'rewind'
+        ]);
+        $traversable->method('valid')->willReturn(true,true,true,true,false);
+        $this->assertEquals(4, get_count($traversable));
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testGetCountThrowsRuntimeExceptionIfCountCannotBeDetermined()
+    {
+        get_count('i like ham');
+    }
+
+    public function testNormalizeOffset()
+    {
+        $stub5 = $this->getMockBuilder('stdClass')
+                      ->setMethods(['__toString'])
+                      ->getMock();
+        $stub5->method('__toString')
+              ->willReturn('5');
+        $stub10 = $this->getMockBuilder('stdClass')
+                       ->setMethods(['__toString'])
+                       ->getMock();
+        $stub10->method('__toString')
+               ->willReturn('10');
+        $stubNeg3 = $this->getMockBuilder('stdClass')
+                         ->setMethods(['__toString'])
+                         ->getMock();
+        $stubNeg3->method('__toString')
+                 ->willReturn('-3');
+
+        $this->assertEquals(0, normalize_offset(0));
+        $this->assertEquals(2, normalize_offset(2));
+        $this->assertEquals(6, normalize_offset(-4, 10));
+        $this->assertEquals(4, normalize_offset('-6', 10));
+        $this->assertEquals(5, normalize_offset($stub5));
+        $this->assertEquals(2, normalize_offset($stubNeg3, $stub5));
+        $this->assertEquals(10, normalize_offset($stub10, 20));
+    }
+
+    public function testGetRangeStartEnd()
+    {
+        $stub5 = $this->getMockBuilder('stdClass')
+                      ->setMethods(['__toString'])
+                      ->getMock();
+        $stub5->method('__toString')
+              ->willReturn('5');
+        $stub10 = $this->getMockBuilder('stdClass')
+                       ->setMethods(['__toString'])
+                       ->getMock();
+        $stub10->method('__toString')
+               ->willReturn('10');
+        $stubNeg3 = $this->getMockBuilder('stdClass')
+                         ->setMethods(['__toString'])
+                         ->getMock();
+        $stubNeg3->method('__toString')
+                 ->willReturn('-3');
+
+        $this->assertEquals([3, 4], get_range_start_end('3:6'));
+        $this->assertEquals([0, 7], get_range_start_end(':6'));
+        $this->assertEquals([5, 5], get_range_start_end('5:', 10));
+        $this->assertEquals([0, 10], get_range_start_end(':', 10));
+        $this->assertEquals([0, 9], get_range_start_end(':-2', 10));
+        $this->assertEquals([0, 9], get_range_start_end(':-2', $stub10));
+        $this->assertEquals([5, 4], get_range_start_end('5:-2', $stub10));
+        $this->assertEquals([3,6], get_range_start_end('-7:-2', $stub10));
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testGetRangeStartEndThrowsRuntimeExceptionIfCannotDetermineStartLength()
+    {
+        get_range_start_end('this will not work');
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testGetRangeStartEndThrowsRuntimeExceptionIfCannotDetermineStartLengthWithColon()
+    {
+        get_range_start_end('this will: not work');
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testNormalizeOffsetThrowsExceptionForInvalidOffset()
+    {
+        normalize_offset('chooochooo');
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     */
+    public function testNormalizeOffsetWillThrowExceptionIfPassedNegativeOffsetWithoutCount()
+    {
+        normalize_offset(-10, null);
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testGetCountThrowsExceptionOnInvalidInput()
+    {
+        normalize_offset('chooochooo');
+    }
+
+    public function testSdumpReturnsDumpAsString()
+    {
+        $obj = new stdClass;
+        $obj->one = 1;
+        $obj->two = [1,2];
+        ob_start();
+        var_dump($obj);
+        $expected = ob_get_clean();
+        $this->assertEquals($expected, sdump($obj));
+    }
+    
+    public function testObjectHashReturnsHashOfDumpedObject()
+    {
+        $obj = new stdClass;
+        $obj->foo = 'bar';
+        $dumpstr = sdump($obj);
+        $this->assertEquals(md5($dumpstr), object_hash($obj));
+        $this->assertEquals(sha1($dumpstr), object_hash($obj, 'sha1'));
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     * @expectedExceptionMessage "bar" is not a valid hash algorithm (md5, sha1).
+     */
+    public function testObjectHashThrowsExceptionForInvalidHashAlgo()
+    {
+        object_hash('foo','bar');
+    }
+
 }
