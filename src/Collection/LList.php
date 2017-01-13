@@ -13,6 +13,7 @@ use InvalidArgumentException;
 
 use Countable;
 use Traversable;
+use Serializable;
 use SplDoublyLinkedList;
 
 use Noz\Contracts\Structure\Listable;
@@ -20,7 +21,6 @@ use Noz\Contracts\Immutable;
 use Noz\Contracts\Arrayable;
 use Noz\Contracts\Invokable;
 
-use Noz\Traits\IsSerializable;
 use Noz\Traits\IsArrayable;
 use Noz\Traits\IsImmutable;
 use Noz\Traits\IsContainer;
@@ -33,13 +33,12 @@ class LList implements
     Immutable,
     Countable,
     Arrayable,
-    Invokable
+    Invokable,
+    Serializable
 {
     use IsImmutable,
         IsArrayable,
-        IsContainer,
-        IsSerializable;
-
+        IsContainer;
     /**
      * @var SplDoublyLinkedList
      */
@@ -50,8 +49,11 @@ class LList implements
      *
      * @param array|Traversable $data The list constructor
      */
-    public function __construct($data)
+    public function __construct($data = null)
     {
+        if (is_null($data)) {
+            $data = [];
+        }
         $this->setData($data);
     }
 
@@ -234,11 +236,6 @@ class LList implements
         }, true);
     }
 
-    public function unserialize($serialized)
-    {
-        $this->setData(unserialize($serialized));
-    }
-
     /**
      * Prepend item to collection.
      *
@@ -269,6 +266,18 @@ class LList implements
         $data = $this->getData();
         $data->push($item);
         return new static($data);
+    }
+
+    public function serialize()
+    {
+        return $this->getData()->serialize();
+    }
+
+    public function unserialize($serialized)
+    {
+        $data = new SplDoublyLinkedList;
+        $data->unserialize($serialized);
+        $this->data = $data;
     }
 
     /**

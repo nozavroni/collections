@@ -10,6 +10,7 @@
  */
 namespace NozTest\Collection;
 
+use SplDoublyLinkedList;
 use Noz\Collection\LList;
 
 class LListTest extends AbstractCollectionTest
@@ -27,5 +28,22 @@ class LListTest extends AbstractCollectionTest
             'nine'
         ]);
         $this->assertEquals(array_values($exp), $list->toArray());
+    }
+
+    public function testSerializeLListMaintainsImmutability()
+    {
+        $list1 = new LList($arr = [
+            'foo' => 'bar',
+            1,
+            67,
+            new \stdClass
+        ]);
+        $this->watchImmutable($list1);
+        $list2 = new LList();
+        $l1s = $list1->serialize();
+        $list2->unserialize($l1s);
+        $this->assertEquals($list2, $list1);
+        $this->assertNotSame($list2, $list1);
+        $this->assertImmutable($list1);
     }
 }
