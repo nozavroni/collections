@@ -54,7 +54,6 @@ class Sequence implements
     Countable,
     Arrayable,
     Invokable,
-    Serializable,
     Iterator
 {
     use IsImmutable,
@@ -557,5 +556,10 @@ class Sequence implements
         $arr = $this->getData();
         array_pop($arr);
         return new static($arr);
+    }
+
+    public function unserialize($serialized)
+    {
+        $this->setData(unserialize($serialized));
     }
 }

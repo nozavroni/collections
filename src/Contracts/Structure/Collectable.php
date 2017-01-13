@@ -83,6 +83,13 @@ interface Collectable
      */
     public function toArray();
 
-    public function serialize();
-    public function unserialize($serialized);
+    /**
+     * Get collection as array.
+     *
+     * @param callable $funk
+     * @param null $carry
+     *
+     * @return array
+     */
+    public function fold(callable $funk, $carry = null);
 }

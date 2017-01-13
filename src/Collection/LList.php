@@ -12,7 +12,6 @@ namespace Noz\Collection;
 use InvalidArgumentException;
 
 use Countable;
-use Noz\Contracts\Structure\Sequenceable;
 use Traversable;
 use SplDoublyLinkedList;
 
@@ -21,11 +20,12 @@ use Noz\Contracts\Immutable;
 use Noz\Contracts\Arrayable;
 use Noz\Contracts\Invokable;
 
+use Noz\Traits\IsSerializable;
 use Noz\Traits\IsArrayable;
 use Noz\Traits\IsImmutable;
+use Noz\Traits\IsContainer;
 
 use function
-    Noz\to_array,
     Noz\is_traversable;
 
 class LList implements
@@ -35,7 +35,10 @@ class LList implements
     Arrayable,
     Invokable
 {
-    use IsImmutable, IsArrayable;
+    use IsImmutable,
+        IsArrayable,
+        IsContainer,
+        IsSerializable;
 
     /**
      * @var SplDoublyLinkedList
@@ -65,10 +68,14 @@ class LList implements
                 __CLASS__
             );
         }
-        $dll = new SplDoublyLinkedList($data);
-        $dll->setIteratorMode(SplDoublyLinkedList::IT_MODE_KEEP);
-        foreach ($data as $key => $val) {
-            $dll->push($val);
+        if ($data instanceof SplDoublyLinkedList) {
+            $dll = $data;
+        } else {
+            $dll = new SplDoublyLinkedList($data);
+            $dll->setIteratorMode(SplDoublyLinkedList::IT_MODE_KEEP);
+            foreach($data as $key => $val) {
+                $dll->push($val);
+            }
         }
         $this->data = $dll;
     }
@@ -76,11 +83,11 @@ class LList implements
     /**
      * Get internal data array.
      *
-     * @return array
+     * @return SplDoublyLinkedList
      */
     protected function getData()
     {
-        return to_array($this->data);
+        return clone $this->data;
     }
 
     /**
@@ -106,7 +113,7 @@ class LList implements
      */
     public function count()
     {
-        // TODO: Implement count() method.
+        return $this->data->count();
     }
 
     /**
@@ -116,7 +123,9 @@ class LList implements
      */
     public function bump()
     {
-        // TODO: Implement bump() method.
+        $data = $this->getData();
+        $data->shift();
+        return new static($data);
     }
 
     /**
@@ -126,7 +135,9 @@ class LList implements
      */
     public function drop()
     {
-        // TODO: Implement drop() method.
+        $data = $this->getData();
+        $data->pop();
+        return new static($data);
     }
 
     /**
@@ -136,7 +147,7 @@ class LList implements
      */
     public function top()
     {
-        // TODO: Implement top() method.
+        return $this->data->top();
     }
 
     /**
@@ -146,7 +157,134 @@ class LList implements
      */
     public function bottom()
     {
-        // TODO: Implement bottom() method.
+        return $this->data->bottom();
+    }
+
+    /**
+     * Is collection empty?
+     * You may optionally pass in a callback which will determine if each of the items within the collection are empty.
+     * If all items in the collection are empty according to this callback, this method will return true.
+     *
+     * @param callable $predicate The callback
+     *
+     * @return bool
+     */
+    public function isEmpty(callable $predicate = null)
+    {
+        if (!is_null($predicate)) {
+            foreach ($this->data as $val) {
+                if (!$predicate($val)) {
+                    return false;
+                }
+            }
+        }
+        return $this->data->isEmpty();
+    }
+
+    /**
+     * Pipe collection through callback.
+     *
+     * Passes entire collection to provided callback and returns the result.
+     *
+     * @param callable $through Function to pipe collection through
+     *
+     * @return mixed
+     */
+    public function pipe(callable $through)
+    {
+        return $through($this);
+    }
+
+    /**
+     * Does every item return true?
+     *
+     * If callback is provided, this method will return true if all items in collection cause callback to return true.
+     * Otherwise, it will return true if all items in the collection have a truthy value.
+     *
+     * @param callable|null $funk The callback
+     *
+     * @return bool
+     */
+    public function every(callable $funk = null)
+    {
+        return $this->fold(function($carry, $val, $key, $iter) use ($funk) {
+            if (!$funk($val, $key, $iter)) {
+                return false;
+            }
+            return $carry && true;
+        }, true);
+    }
+
+    /**
+     * Does every item return false?
+     *
+     * This method is the exact opposite of "all".
+     *
+     * @param callable|null $callback The callback
+     *
+     * @return bool
+     */
+    public function none(callable $callback = null)
+    {
+        return $this->fold(function($carry, $val, $key, $iter) use ($funk) {
+            if ($funk($val, $key, $iter)) {
+                return false;
+            }
+            return $carry && true;
+        }, true);
+    }
+
+    public function unserialize($serialized)
+    {
+        $this->setData(unserialize($serialized));
+    }
+
+    /**
+     * Prepend item to collection.
+     *
+     * Return a new list with this item prepended to the collection.
+     *
+     * @param mixed $item Item to prepend to collection
+     *
+     * @return Listable
+     */
+    public function prepend($item)
+    {
+        $data = $this->getData();
+        $data->unshift($item);
+        return new static($data);
+    }
+
+    /**
+     * Append item to collection.
+     *
+     * Return a new list with this item appended to the collection.
+     *
+     * @param mixed $item Item to append to collection
+     *
+     * @return Listable
+     */
+    public function append($item)
+    {
+        $data = $this->getData();
+        $data->push($item);
+        return new static($data);
+    }
+
+    /**
+     * @param callable|null $folder
+     * @param null          $initial
+     *
+     * @return null
+     */
+    public function fold(callable $folder = null, $initial = null)
+    {
+        $iter = 0;
+        $carry = $initial;
+        foreach ($this->getData() as $key => $val) {
+            $carry = $folder($carry, $val, $key, $iter++);
+        }
+        return $carry;
     }
 
 }

@@ -54,7 +54,9 @@ class Collection implements
     Countable,
     Iterator
 {
-    use IsArrayable, IsContainer, IsSerializable;
+    use IsArrayable,
+        IsContainer,
+        IsSerializable;
 
     /**
      * @var array The collection of data this object represents
@@ -1162,4 +1164,13 @@ class Collection implements
     {
         return collect(array_count_values($this->toArray()));
     }
+
+    /**
+     * @param $serialized
+     */
+    public function unserialize($serialized)
+    {
+        $this->setData(unserialize($serialized));
+    }
+
 }
