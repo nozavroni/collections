@@ -7,7 +7,7 @@
  * @author    Luke Visinoni <luke.visinoni@gmail.com>
  * @license   https://github.com/deni-zen/csvelte/blob/master/LICENSE The MIT License (MIT)
  */
-namespace Noz\Collection;
+namespace Noz\Immutable;
 
 use BadMethodCallException;
 
@@ -15,7 +15,7 @@ use Countable;
 use Traversable;
 use SplFixedArray;
 
-use Noz\Contracts\Structure\Settable;
+use Noz\Contracts\Structure\Listable;
 use Noz\Contracts\Immutable;
 use Noz\Contracts\Arrayable;
 use Noz\Contracts\Invokable;
@@ -25,8 +25,13 @@ use Noz\Traits\IsImmutable;
 use function Noz\to_array;
 use function Noz\is_traversable;
 
-class Set implements
-    Settable,
+/**
+ * Stack Collection.
+ *
+ * A stack is a Linked List in LIFO (last-in, first-out) configuration.
+ */
+class Stack extends LList implements
+    Listable,
     Immutable,
     Countable,
     Arrayable,

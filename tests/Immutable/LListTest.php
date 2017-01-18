@@ -8,10 +8,10 @@
  * @author    Luke Visinoni <luke.visinoni@gmail.com>
  * @license   https://github.com/deni-zen/csvelte/blob/master/LICENSE The MIT License (MIT)
  */
-namespace NozTest\Collection;
+namespace NozTest\Immutable;
 
 use SplDoublyLinkedList;
-use Noz\Collection\LList;
+use Noz\Immutable\LList;
 
 class LListTest extends AbstractCollectionTest
 {

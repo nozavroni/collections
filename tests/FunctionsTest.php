@@ -27,8 +27,8 @@ use function
     Noz\get_range_start_end,
     Noz\normalize_offset,
     Noz\_;
-use Noz\Collection\Collection;
-use Noz\Collection\Sequence;
+use Noz\Immutable\Collection;
+use Noz\Immutable\Sequence;
 use Noz\Contracts\CollectionInterface;
 use Noz\Contracts\Structure\Collectable;
 use function Noz\get_count;

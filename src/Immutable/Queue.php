@@ -7,7 +7,7 @@
  * @author    Luke Visinoni <luke.visinoni@gmail.com>
  * @license   https://github.com/deni-zen/csvelte/blob/master/LICENSE The MIT License (MIT)
  */
-namespace Noz\Collection;
+namespace Noz\Immutable;
 
 use BadMethodCallException;
 

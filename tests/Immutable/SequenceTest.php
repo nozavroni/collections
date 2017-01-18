@@ -8,11 +8,11 @@
  * @author    Luke Visinoni <luke.visinoni@gmail.com>
  * @license   https://github.com/deni-zen/csvelte/blob/master/LICENSE The MIT License (MIT)
  */
-namespace NozTest\Collection;
+namespace NozTest\Immutable;
 
 use ArrayIterator;
 use Illuminate\Support\Str;
-use Noz\Collection\Sequence;
+use Noz\Immutable\Sequence;
 use RuntimeException;
 
 use function Noz\is_traversable;

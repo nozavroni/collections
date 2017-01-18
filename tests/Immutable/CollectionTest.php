@@ -8,7 +8,7 @@
  * @author    Luke Visinoni <luke.visinoni@gmail.com>
  * @license   https://github.com/deni-zen/csvelte/blob/master/LICENSE The MIT License (MIT)
  */
-namespace NozTest\Collection;
+namespace NozTest\Immutable;
 
 use ArrayAccess;
 use Closure;
@@ -16,7 +16,7 @@ use Countable;
 use Illuminate\Support\Str;
 use \Iterator;
 use \ArrayIterator;
-use Noz\Collection\Collection;
+use Noz\Immutable\Collection;
 use Noz\Contracts\CollectionInterface;
 
 use function Noz\invoke;

@@ -13,8 +13,8 @@ use Closure;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Iterator;
-use Noz\Collection\Collection;
-use Noz\Collection\Sequence;
+use Noz\Immutable\Collection;
+use Noz\Immutable\Sequence;
 use Noz\Contracts\CollectionInterface;
 use RuntimeException;
 use Serializable;
@@ -124,14 +124,15 @@ function is_arrayable($data)
 /**
  * Convert any traversable to an array.
  *
- * @todo I'm not sure if this function is necessary or not. Does iterator_to_array do everything this can do?
+ * This is useful because it will take any traversable data structure (including an array) and return an array.
+ * It can optionally do this recursively.
  *
- * @param Traversable $data      Traversable data
- * @param bool        $recursive Apply recursively?
+ * @param array|Traversable $data      Traversable data
+ * @param bool              $recursive Apply recursively?
  *
  * @return array
  */
-function traversable_to_array(Traversable $data, $recursive = true)
+function traversable_to_array($data, $recursive = true)
 {
     $arr = [];
     foreach ($data as $key => $val) {

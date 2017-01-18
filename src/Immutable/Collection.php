@@ -7,7 +7,7 @@
  * @author    Luke Visinoni <luke.visinoni@gmail.com>
  * @license   https://github.com/nozavroni/collections/blob/master/LICENSE The MIT License (MIT)
  */
-namespace Noz\Collection;
+namespace Noz\Immutable;
 
 use InvalidArgumentException;
 use OutOfBoundsException;
@@ -40,7 +40,7 @@ use function
  * implementing the "Collectable" interface, extending this class gives you a
  * whole slew of convenient methods for free.
  *
- * @package Noz\Collection
+ * @package Noz\Immutable
  *
  * @author Luke Visinoni <luke.visinoni@gmail.com>
  * @copyright Copyright (c) 2016 Luke Visinoni <luke.visinoni@gmail.com>
