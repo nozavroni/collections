@@ -353,18 +353,32 @@ class Collection implements
      * Applies a callback to each item in collection and returns a new collection
      * containing each iteration's return value.
      *
-     * @param callable $callback The callback to apply
+     * @param callable $mapper The callback to apply
      *
      * @return CollectionInterface A new collection with callback return values
      */
-    public function map(callable $callback)
+    public function map(callable $mapper)
     {
         $iter = 0;
         $transform = [];
         foreach ($this as $key => $val) {
-            $transform[$key] = $callback($val, $key, $iter++);
+            $transform[$key] = $mapper($val, $key, $iter++);
         }
         return new static($transform);
+    }
+
+    /**
+     * Like map, except done in-place.
+     *
+     * @param callable $transformer A transformer callback
+     *
+     * @return $this
+     */
+    public function transform(callable $transformer)
+    {
+        $this->data = $this->map($transformer);
+
+        return $this;
     }
 
     /**
@@ -376,8 +390,9 @@ class Collection implements
      */
     public function each(callable $callback)
     {
+        $iter = 0;
         foreach ($this as $key => $val) {
-            if (!$callback($val, $key)) {
+            if (!$callback($val, $key, $iter++)) {
                 break;
             }
         }
@@ -395,16 +410,20 @@ class Collection implements
      *
      * @return CollectionInterface A new collection with only values that weren't filtered
      */
-    public function filter(callable $callback)
+    public function filter(callable $callback = null)
     {
-        $iter = 0;
-        $filtered = [];
-        foreach ($this as $key => $val) {
-            if ($callback($val, $key, $iter++)) {
-                $filtered[$key] = $val;
+        if (is_null($callback)) {
+            $filtered = array_filter($this->data);
+        } else {
+            $iter     = 0;
+            $filtered = [];
+            foreach($this as $key => $val) {
+                if ($callback($val, $key, $iter++)) {
+                    $filtered[$key] = $val;
+                }
             }
         }
-        return collect($filtered);
+        return new static($filtered);
     }
 
     /**

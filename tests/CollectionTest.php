@@ -11,8 +11,10 @@
 
 namespace NozTest;
 
+use DateTime;
 use InvalidArgumentException;
 use Noz\Collection;
+use stdClass;
 
 class CollectionTest extends UnitTestCase
 {
@@ -229,12 +231,42 @@ class CollectionTest extends UnitTestCase
         $this->assertEquals(['a','a','a','a'], $coll2->pad(4,'a')->toArray());
     }
 
-    // @todo Add transform() that does map() in place
     public function testMapReturnsNewCollectionWithChangedValues()
     {
         $coll = new Collection(['a' => 'ark','b' => 'bark','c' => 'car']);
         $this->assertEquals(['a' => 'aark0','b' => 'bbark1','c' => 'ccar2'], $coll->map(function($val, $key, $iter) {
             return "{$key}{$val}{$iter}";
         })->toArray());
+    }
+
+    public function testTransformPerformsMapInPlace()
+    {
+        $coll = new Collection(['a' => 'ark','b' => 'bark','c' => 'car']);
+        $transform = $coll->transform(function($val, $key, $iter) {
+            return "{$key}{$val}{$iter}";
+        });
+        $this->assertEquals(['a' => 'aark0','b' => 'bbark1','c' => 'ccar2'], $transform->toArray());
+    }
+
+    public function testEachIteratesAndBreaksOnFalse()
+    {
+        $coll = new Collection(['je' => 'john', 'kb' => 'kevin', 'lv' => 'luke', 'rw' => 'ryan', 'lh' => 'luke']);
+        $test = [];
+        $coll->each(function($val, $key, $iter) use (&$test) {
+            $test["{$key}-{$iter}"] = $val;
+            return $iter < 2;
+        });
+        $this->assertEquals(['je-0' => 'john', 'kb-1' => 'kevin', 'lv-2' => 'luke'], $test);
+    }
+
+    public function testFilterReturnsNewCollectionLessPredicate()
+    {
+        $coll = new Collection(['asd','fpp',0,12,'416',new DateTime, -96, false, null, 'ppj', new stdClass, [1,3,4], 'bar']);
+        $this->assertCount(10, $truthy = $coll->filter());
+        $this->assertEquals(['asd','fpp',12,'416',new DateTime, -96, 'ppj', new stdClass, [1,3,4], 'bar'], $truthy->values()->toArray());
+        $this->assertCount(4, $filtered = $coll->filter(function($val, $key, $iter) {
+            return is_numeric($val);
+        }));
+        $this->assertEquals([0,12,'416', -96], $filtered->values()->toArray());
     }
 }
