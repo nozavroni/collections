@@ -371,11 +371,11 @@ interface CollectionInterface
      *       I should just typehint Closure instead of callable and then I can simply call $closure->bindTo($this) so
      *       that $this is available within the callback. This is something to think about for ALL callback arguments.
      *
-     * @param callable $callback The callback function
+     * @param callable $predicate The callback function
      *
      * @return CollectionInterface
      */
-    public function filter(callable $callback);
+    public function filter(callable $predicate);
 
     /**
      * Filter collection.
@@ -383,11 +383,11 @@ interface CollectionInterface
      * Filters this collection using a callback function. The callback is passed the item value, followed by its index,
      * followed by a numeric iteration value.
      *
-     * @param callable $callback The callback function
+     * @param callable $predicate The callback function
      *
      * @return CollectionInterface
      */
-    public function exclude(callable $callback);
+    public function exclude(callable $predicate);
 
     /**
      * Get first item.
@@ -402,10 +402,6 @@ interface CollectionInterface
      * @return mixed
      */
     public function first(callable $callback = null, $default = null);
-
-
-
-
 
     /**
      * Get last item.

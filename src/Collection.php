@@ -10,11 +10,13 @@
 namespace Noz;
 
 use InvalidArgumentException;
+use Noz\Immutable\Sequence;
 use OutOfBoundsException;
 
 use ArrayIterator;
 use Countable;
 use Iterator;
+use ReflectionFunction;
 use Traversable;
 
 use Noz\Contracts\Arrayable;
@@ -31,7 +33,8 @@ use function
     Noz\collect,
     Noz\is_arrayable,
     Noz\to_array,
-    Noz\traversable_to_array;
+    Noz\traversable_to_array,
+    Noz\normalize_offset;
 
 /**
  * Class Collection.
@@ -300,7 +303,7 @@ class Collection implements
      */
     public function indexOf($value)
     {
-        return $this->fold(function($carry, $val, $key, $iter) use ($value) {
+        return $this->fold(function($carry, $val, $key) use ($value) {
             if (is_null($carry) && $val == $value) {
                 return $key;
             }
@@ -315,7 +318,7 @@ class Collection implements
      */
     public function keys()
     {
-        return new static(array_keys($this->getData()));
+        return static::factory(array_keys($this->getData()));
     }
 
     /**
@@ -327,7 +330,7 @@ class Collection implements
      */
     public function values()
     {
-        return new static(array_values($this->getData()));
+        return static::factory(array_values($this->getData()));
     }
 
     /**
@@ -364,7 +367,7 @@ class Collection implements
         foreach ($this as $key => $val) {
             $transform[$key] = $mapper($val, $key, $iter++);
         }
-        return new static($transform);
+        return static::factory($transform);
     }
 
     /**
@@ -406,24 +409,24 @@ class Collection implements
      * Using a callback function, this method will filter out unwanted values, returning
      * a new collection containing only the values that weren't filtered.
      *
-     * @param callable $callback The callback function used to filter
+     * @param callable $predicate The callback function used to filter
      *
      * @return CollectionInterface A new collection with only values that weren't filtered
      */
-    public function filter(callable $callback = null)
+    public function filter(callable $predicate = null)
     {
-        if (is_null($callback)) {
+        if (is_null($predicate)) {
             $filtered = array_filter($this->data);
         } else {
             $iter     = 0;
             $filtered = [];
             foreach($this as $key => $val) {
-                if ($callback($val, $key, $iter++)) {
+                if ($predicate($val, $key, $iter++)) {
                     $filtered[$key] = $val;
                 }
             }
         }
-        return new static($filtered);
+        return static::factory($filtered);
     }
 
     /**
@@ -432,20 +435,25 @@ class Collection implements
      * Using a callback function, this method will filter out unwanted values, returning
      * a new collection containing only the values that weren't filtered.
      *
-     * @param callable $callback The callback function used to filter
+     * @param callable $predicate The callback function used to filter
      *
      * @return CollectionInterface A new collection with only values that weren't filtered
      */
-    public function exclude(callable $callback)
+    public function exclude(callable $predicate = null)
     {
+        if (is_null($predicate)) {
+            $predicate = function($val) {
+                return (bool) $val != false;
+            };
+        }
         $iter = 0;
-        $filtered = [];
+        $excluded = [];
         foreach ($this as $key => $val) {
-            if (!$callback($val, $key, $iter++)) {
-                $filtered[$key] = $val;
+            if (!$predicate($val, $key, $iter++)) {
+                $excluded[$key] = $val;
             }
         }
-        return collect($filtered);
+        return static::factory($excluded);
     }
 
     /**
@@ -454,20 +462,22 @@ class Collection implements
      * Using a callback function, this method will return the first item in the collection
      * that causes the callback function to return true.
      *
-     * @param callable|null $callback The callback function
-     * @param mixed|null    $default  The default return value
+     * @param callable|null $predicate The callback function
+     * @param mixed|null    $default   The default return value
      *
      * @return mixed
      */
-    public function first(callable $callback = null, $default = null)
+    public function first(callable $predicate = null, $default = null)
     {
-        if (is_null($callback)) {
-            return $this->getOffset(0);
-        }
-
-        foreach ($this as $index => $value) {
-            if ($callback($value, $index)) {
-                return $value;
+        if (is_null($predicate)) {
+            if ($this->hasOffset(0)) {
+                return $this->getOffset(0);
+            }
+        } else {
+            foreach($this as $index => $value) {
+                if ($predicate($value, $index)) {
+                    return $value;
+                }
             }
         }
 
@@ -477,7 +487,7 @@ class Collection implements
     /**
      * Return the last item that meets given criteria.
      *
-     * Using a callback function, this method will return the last item in the collection
+     * Using a callback func`tion, this method will return the last item in the collection
      * that causes the callback function to return true.
      *
      * @param callable|null $callback The callback function
@@ -488,10 +498,10 @@ class Collection implements
     public function last(callable $callback = null, $default = null)
     {
         $reverse = $this->reverse();
-        if (is_null($callback)) {
-            return $reverse->getOffset(0);
-        }
-        return $reverse->first($callback);
+//        if (is_null($callback)) {
+//            return $reverse->getOffset(0);
+//        }
+        return $reverse->first($callback, $default);
     }
 
     /**
@@ -501,7 +511,7 @@ class Collection implements
      */
     public function reverse()
     {
-        return collect(array_reverse($this->getData(), true));
+        return static::factory(array_reverse($this->getData(), true));
     }
 
     /**
@@ -513,7 +523,7 @@ class Collection implements
      */
     public function unique()
     {
-        return collect(array_unique($this->getData()));
+        return static::factory(array_unique($this->getData()));
     }
 
     /**
@@ -539,11 +549,7 @@ class Collection implements
      */
     public function isNumeric()
     {
-        $data = $this->getData();
-        if (!is_traversable($data) || empty($data)) {
-            return false;
-        }
-        foreach ($data as $val) {
+        foreach ($this as $val) {
             if (!is_numeric($val)) {
                 return false;
             }
@@ -569,8 +575,12 @@ class Collection implements
      */
     public function getOffsetKey($offset)
     {
+        $offset = normalize_offset($offset, $this);
         if (!is_null($key = $this->fold(function($carry, $val, $key, $iter) use ($offset) {
-            return ($iter === $offset) ? $key : $carry;
+            if ($iter++ === $offset) {
+                return $key;
+            }
+            return $carry;
         }))) {
             return $key;
         }
@@ -586,20 +596,6 @@ class Collection implements
     }
 
     /**
-     * @param int $offset The numerical offset
-     *
-     * @throws OutOfBoundsException if no pair at position
-     *
-     * @return array
-     */
-    public function getOffsetPair($offset)
-    {
-        $pairs = $this->pairs();
-
-        return $pairs[$this->getOffsetKey($offset)];
-    }
-
-    /**
      * Get each key/value as an array pair.
      *
      * Returns a collection of arrays where each item in the collection is [key,value]
@@ -608,7 +604,7 @@ class Collection implements
      */
     public function pairs()
     {
-        return collect(array_map(
+        return static::factory(array_map(
             function ($key, $val) {
                 return [$key, $val];
             },
@@ -632,7 +628,7 @@ class Collection implements
             $dups[$val][] = $key;
         });
 
-        return collect($dups)->filter(function ($val) {
+        return static::factory($dups)->filter(function ($val) {
             return count($val) > 1;
         });
     }
@@ -673,7 +669,7 @@ class Collection implements
             $frequency[$val]++;
         }
 
-        return collect($frequency);
+        return static::factory($frequency);
     }
 
     /**
@@ -684,7 +680,7 @@ class Collection implements
         if (!$this->has($index)) {
             return $this->set($index, $value);
         }
-        return collect($this);
+        return static::factory($this);
     }
 
     /**
@@ -720,7 +716,7 @@ class Collection implements
         $data = $this->getData();
         array_unshift($data, $item);
 
-        return collect($data);
+        return static::factory($data);
     }
 
     /**
@@ -731,7 +727,7 @@ class Collection implements
         $data = $this->getData();
         array_push($data, $item);
 
-        return collect($data);
+        return static::factory($data);
     }
 
     /**
@@ -739,7 +735,7 @@ class Collection implements
      */
     public function chunk($size)
     {
-        return collect($this->fold(function($chunks, $val, $key, $iter) use ($size) {
+        return static::factory($this->fold(function($chunks, $val, $key, $iter) use ($size) {
             if (is_null($chunks)) {
                 $chunks = [];
             }
@@ -764,10 +760,10 @@ class Collection implements
                 typeof($values)
             ));
         }
-        return collect(
+        return static::factory(
             array_combine(
                 $this->keys()->toArray(),
-                collect($values)->values()->toArray()
+                with(new Collection($values))->values()->toArray()
             )
         );
     }
@@ -775,25 +771,36 @@ class Collection implements
     /**
      * @inheritDoc
      */
-    public function diff($data)
+    public function diff($data, callable $equals = null)
     {
-        return collect(
-            array_diff(
-                $this->toArray(),
-                collect($data)->toArray()
-            )
-        );
+        $diff = [];
+        $orig = $this->getData();
+        $cmpr = to_array($data);
+
+        if (is_null ($equals)) {
+            $equals = function($a, $b) {
+                return $a == $b;
+            };
+        }
+        foreach ($orig as $key => $val) {
+            foreach ($cmpr as $cmpKey => $cmpVal) {
+                if (!$equals($val, $cmpVal)) {
+                    $diff[$cmpKey] = $cmpVal;
+                }
+            }
+        }
+        return $diff;
     }
 
     /**
      * @inheritDoc
      */
-    public function diffKeys($data)
+    public function diffKeys($data, callable $equals = null)
     {
-        return collect(
+        return static::factory(
             array_diff_key(
                 $this->getData(),
-                collect($data)->toArray()
+                to_array($data)
             )
         );
     }
@@ -813,7 +820,7 @@ class Collection implements
      */
     public function except($indexes)
     {
-        return $this->diffKeys(collect($indexes)->flip());
+        return $this->diffKeys(static::factory($indexes)->flip());
     }
 
     /**
@@ -821,7 +828,7 @@ class Collection implements
      */
     public function flip()
     {
-        return collect(array_flip($this->getData()));
+        return static::factory(array_flip($this->getData()));
     }
 
     /**
@@ -829,7 +836,7 @@ class Collection implements
      */
     public function intersect($data)
     {
-        return collect(
+        return static::factory(
             array_intersect(
                 $this->toArray(),
                 collect($data)->toArray()
@@ -842,7 +849,7 @@ class Collection implements
      */
     public function intersectKeys($data)
     {
-        return collect(
+        return static::factory(
             array_intersect_key(
                 $this->toArray(),
                 collect($data)->toArray()
@@ -866,7 +873,7 @@ class Collection implements
      */
     public function only($indices)
     {
-        return $this->intersectKeys(collect($indices)->flip()->toArray());
+        return $this->intersectKeys(static::factory($indices)->flip()->toArray());
     }
 
     /**
@@ -902,7 +909,7 @@ class Collection implements
      */
     public function shuffle()
     {
-        return collect(shuffle($this->getData()));
+        return static::factory(shuffle($this->getData()));
     }
 
     /**
@@ -910,7 +917,7 @@ class Collection implements
      */
     public function slice($offset, $length = null)
     {
-        return collect(array_slice($this->getData(), $offset, $length, true));
+        return static::factory(array_slice($this->getData(), $offset, $length, true));
     }
 
     /**
@@ -921,7 +928,7 @@ class Collection implements
         $count = $this->count();
         $size = (int)($count / $num);
         $mod = $count % $num;
-        return collect($this->fold(function($chunks, $val, $key, $iter) use ($num, $size, $mod) {
+        return static::factory($this->fold(function($chunks, $val, $key, $iter) use ($num, $size, $mod) {
             $chunk_count = count($chunks);
             if ($chunk_count <= $mod) {
                 $size++;
@@ -956,7 +963,7 @@ class Collection implements
      */
     public function union($data)
     {
-        return collect(
+        return static::factory(
             array_merge(
                 $this->getData(),
                 collect($data)->toArray()
@@ -970,7 +977,7 @@ class Collection implements
     public function zip(...$data)
     {
         /** @var CollectionInterface $args The function arguments TODO: Change this to SequenceInterface when you have that interface. */
-        $args = collect(func_get_args());
+        $args = new Sequence(func_get_args());
         $args->map(function($val) {
             if (is_arrayable($val)) {
                 return to_array($val);
@@ -982,7 +989,7 @@ class Collection implements
         $args = $args->prepend($this->getData())
                      ->prepend(null);
 
-        return collect(
+        return static::factory(
 //            array_map(
 //                null,
 //                $this->getData(),
@@ -1177,7 +1184,7 @@ class Collection implements
      */
     public function counts()
     {
-        return collect(array_count_values($this->toArray()));
+        return static::factory(array_count_values($this->toArray()));
     }
 
     /**
