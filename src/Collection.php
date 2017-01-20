@@ -283,7 +283,7 @@ class Collection implements
      *
      * @param mixed $index The index to unset
      *
-     * @return CollectionInterface
+     * @return Collection
      */
     public function delete($index)
     {
@@ -314,7 +314,7 @@ class Collection implements
     /**
      * Get this collection's keys as a collection.
      *
-     * @return CollectionInterface Containing this collection's keys
+     * @return Collection Containing this collection's keys
      */
     public function keys()
     {
@@ -326,7 +326,7 @@ class Collection implements
      *
      * This method returns this collection's values but completely re-indexed (numerically).
      *
-     * @return CollectionInterface Containing this collection's values
+     * @return Collection Containing this collection's values
      */
     public function values()
     {
@@ -341,7 +341,7 @@ class Collection implements
      * @param int   $size The number of items that should be in the collection
      * @param mixed $with The value to pad the collection with
      *
-     * @return CollectionInterface A new collection padded to specified length
+     * @return Collection A new collection padded to specified length
      */
     public function pad($size, $with = null)
     {
@@ -358,7 +358,7 @@ class Collection implements
      *
      * @param callable $mapper The callback to apply
      *
-     * @return CollectionInterface A new collection with callback return values
+     * @return Collection A new collection with callback return values
      */
     public function map(callable $mapper)
     {
@@ -411,7 +411,7 @@ class Collection implements
      *
      * @param callable $predicate The callback function used to filter
      *
-     * @return CollectionInterface A new collection with only values that weren't filtered
+     * @return Collection A new collection with only values that weren't filtered
      */
     public function filter(callable $predicate = null)
     {
@@ -437,7 +437,7 @@ class Collection implements
      *
      * @param callable $predicate The callback function used to filter
      *
-     * @return CollectionInterface A new collection with only values that weren't filtered
+     * @return Collection A new collection with only values that weren't filtered
      */
     public function exclude(callable $predicate = null)
     {
@@ -507,7 +507,7 @@ class Collection implements
     /**
      * Returns collection in reverse order.
      *
-     * @return CollectionInterface This collection in reverse order.
+     * @return Collection This collection in reverse order.
      */
     public function reverse()
     {
@@ -519,7 +519,7 @@ class Collection implements
      *
      * Returns a collection of all the unique items in this collection.
      *
-     * @return CollectionInterface This collection with duplicate items removed
+     * @return Collection This collection with duplicate items removed
      */
     public function unique()
     {
@@ -535,7 +535,7 @@ class Collection implements
      *
      * @param mixed $data The data to wrap
      *
-     * @return CollectionInterface A collection containing $data
+     * @return Collection A collection containing $data
      */
     public static function factory($data = null)
     {
@@ -600,7 +600,7 @@ class Collection implements
      *
      * Returns a collection of arrays where each item in the collection is [key,value]
      *
-     * @return CollectionInterface
+     * @return Collection
      */
     public function pairs()
     {
@@ -613,26 +613,6 @@ class Collection implements
         ));
     }
 
-    /**
-     * Get duplicate values.
-     *
-     * Returns a collection of arrays where the key is the duplicate value
-     * and the value is an array of keys from the original collection.
-     *
-     * @return CollectionInterface A new collection with duplicate values.
-     */
-    public function duplicates()
-    {
-        $dups = [];
-        $this->walk(function ($val, $key) use (&$dups) {
-            $dups[$val][] = $key;
-        });
-
-        return static::factory($dups)->filter(function ($val) {
-            return count($val) > 1;
-        });
-    }
-
     // END Iterator methods
 
     /**
@@ -642,34 +622,19 @@ class Collection implements
      * value appears in the collection. Works best with scalar values but will
      * attempt to work on collections of objects as well.
      *
-     * @return CollectionInterface
-     *
-     * @todo Right now, collections of arrays or objects are supported via the
-     * __toString() or spl_object_hash()
-     * @todo NumericCollection::counts() does the same thing...
+     * @return Collection
      */
     public function frequency()
     {
-        $frequency = [];
-        foreach ($this as $key => $val) {
-            if (!is_scalar($val)) {
-                if (!is_object($val)) {
-                    $val = new ArrayIterator($val);
+        return static::factory($this->fold(
+            function($carry, $val, $key, $iter) {
+                if (!isset($carry[$val])) {
+                    $carry[$val] = 0;
                 }
-
-                if (method_exists($val, '__toString')) {
-                    $val = (string) $val;
-                } else {
-                    $val = spl_object_hash($val);
-                }
+                $carry[$val]++;
+                return $carry;
             }
-            if (!isset($frequency[$val])) {
-                $frequency[$val] = 0;
-            }
-            $frequency[$val]++;
-        }
-
-        return static::factory($frequency);
+        ), []);
     }
 
     /**
@@ -1065,7 +1030,7 @@ class Collection implements
      * @param mixed $index    The key of the item you want to increment.
      * @param int   $interval The interval that $key should be incremented by
      *
-     * @return CollectionInterface
+     * @return Collection
      */
     public function increment($index, $interval = 1)
     {
@@ -1087,7 +1052,7 @@ class Collection implements
      * @param mixed $index      The key of the item you want to decrement.
      * @param int   $interval The interval that $key should be decremented by
      *
-     * @return CollectionInterface
+     * @return Collection
      */
     public function decrement($index, $interval = 1)
     {
@@ -1180,7 +1145,7 @@ class Collection implements
      * values and values are the number of times that value occurs in
      * the original collection.
 
-     * @return CollectionInterface
+     * @return Collection
      */
     public function counts()
     {
