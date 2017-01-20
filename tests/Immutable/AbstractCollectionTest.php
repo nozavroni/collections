@@ -8,13 +8,13 @@
  * @author    Luke Visinoni <luke.visinoni@gmail.com>
  * @license   https://github.com/deni-zen/csvelte/blob/master/LICENSE The MIT License (MIT)
  */
-namespace NozTest\Collection;
+namespace NozTest\Immutable;
 
-use Noz\Collection\Collection;
-use Noz\Collection\MultiCollection;
-use Noz\Collection\TabularCollection;
+use Noz\Immutable\Collection;
+use function Noz\object_hash;
 use NozTest\UnitTestCase;
 use Faker;
+use SplObjectStorage;
 
 class AbstractCollectionTest extends UnitTestCase
 {
@@ -23,14 +23,26 @@ class AbstractCollectionTest extends UnitTestCase
      */
     const MY_BDAY = 19860423;
 
+    const MultiCollection = 'multi';
+    const TabularCollection = 'table';
+
     protected $testdata = [];
+
+    /**
+     * Immutable object storage.
+     *
+     * @var SplObjectStorage
+     */
+    protected $immutables;
 
     public function setUp()
     {
         parent::setUp();
+        // used to store objects that I need to watch to make sure they don't change
+        $this->immutables = new SplObjectStorage();
         $faker = Faker\Factory::create();
         $faker->seed(static::MY_BDAY);
-        $this->testdata[MultiCollection::class] = [
+        $this->testdata[static::MultiCollection] = [
             'names' => [],
             'addresses' => [],
             'cities' => [],
@@ -40,22 +52,22 @@ class AbstractCollectionTest extends UnitTestCase
             'userAgent' => []
         ];
         for ($i = 0; $i < 10; $i++) {
-            $this->testdata[MultiCollection::class]['names'][] = $faker->name;
-            $this->testdata[MultiCollection::class]['addresses'][] = $faker->streetAddress;
-            $this->testdata[MultiCollection::class]['cities'][] = $faker->city;
-            $this->testdata[MultiCollection::class]['dates'][] = $faker->date;
-            $this->testdata[MultiCollection::class]['numeric'][] = $faker->randomNumber;
-            $this->testdata[MultiCollection::class]['words'][] = $faker->words;
-            $this->testdata[MultiCollection::class]['userAgent'][] = $faker->userAgent;
+            $this->testdata[static::MultiCollection]['names'][] = $faker->name;
+            $this->testdata[static::MultiCollection]['addresses'][] = $faker->streetAddress;
+            $this->testdata[static::MultiCollection]['cities'][] = $faker->city;
+            $this->testdata[static::MultiCollection]['dates'][] = $faker->date;
+            $this->testdata[static::MultiCollection]['numeric'][] = $faker->randomNumber;
+            $this->testdata[static::MultiCollection]['words'][] = $faker->words;
+            $this->testdata[static::MultiCollection]['userAgent'][] = $faker->userAgent;
         }
-        $this->testdata[TabularCollection::class] = [
+        $this->testdata[static::TabularCollection] = [
             'user' => [],
             'profile' => []
         ];
         for($t = 1; $t <= 5; $t++) {
             $created = $faker->dateTimeThisYear->format('YmdHis');
             $profile_id = $t + 125;
-            $this->testdata[TabularCollection::class]['user'][] = [
+            $this->testdata[static::TabularCollection]['user'][] = [
                 'id' => $t,
                 'profile_id' => $profile_id,
                 'email' => $faker->email,
@@ -65,7 +77,7 @@ class AbstractCollectionTest extends UnitTestCase
                 'created' => $created,
                 'modified' => $created
             ];
-            $this->testdata[TabularCollection::class]['profile'][] = [
+            $this->testdata[static::TabularCollection]['profile'][] = [
                 'id' => $profile_id,
                 'address' => $faker->streetAddress,
                 'city' => $faker->city,
@@ -78,5 +90,34 @@ class AbstractCollectionTest extends UnitTestCase
             ];
         }
         $this->testdata[Collection::class] = $faker->words(15);
+    }
+
+    /**
+     * Watch an immutable object to see if it changes in any way while working with it.
+     *
+     * @param object $obj The immutable object
+     */
+    protected function watchImmutable($obj)
+    {
+        $this->immutables->attach($obj, object_hash($obj));
+    }
+
+    /**
+     * Assert "Watched" immutable object hasn't changed.
+     *
+     * @param object $obj The object to check
+     *
+     * @return bool
+     */
+    protected function assertImmutable($obj)
+    {
+        if ($this->immutables->contains($obj)) {
+            return object_hash($obj) == $this->immutables[$obj];
+        }
+        $this->fail(sprintf(
+            'Object checksum assertion failed for object: %s <%s>',
+            get_class($obj),
+            object_hash($obj)
+        ));
     }
 }
